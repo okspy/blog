@@ -81,15 +81,15 @@
 
 <meta name="description" content="强引用、软引用、弱引用、虚引用 强引用：正常new出来对象就是强引用，当内存不够的时候，JVM宁可抛出异常，也不会回收强引用对象。 软引用(SoftReference)：软引用生命周期比强引用低，在内存不够的时候，会进行回收软引用对象。软引用对象经常和引用队列ReferenceQueue一起使用，在软引用所引用的对象被GC回收后，会把该引用加入到引用队列中。 弱引用(WeakReference)：">
 <meta property="og:type" content="article">
-<meta property="og:title" content="okspy">
+<meta property="og:title" content="ThreadLocal底层实现原理">
 <meta property="og:url" content="http://yoursite.com/2019/09/12/threadLocal/index.html">
 <meta property="og:site_name" content="okspy">
 <meta property="og:description" content="强引用、软引用、弱引用、虚引用 强引用：正常new出来对象就是强引用，当内存不够的时候，JVM宁可抛出异常，也不会回收强引用对象。 软引用(SoftReference)：软引用生命周期比强引用低，在内存不够的时候，会进行回收软引用对象。软引用对象经常和引用队列ReferenceQueue一起使用，在软引用所引用的对象被GC回收后，会把该引用加入到引用队列中。 弱引用(WeakReference)：">
 <meta property="og:locale" content="zh-Hans">
 <meta property="og:image" content="https://okspy.github.io/blogimg/threadLocal/ThreadLocal%E5%BC%95%E7%94%A8.png">
-<meta property="og:updated_time" content="2019-09-12T15:21:50.738Z">
+<meta property="og:updated_time" content="2019-09-12T15:34:36.038Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="okspy">
+<meta name="twitter:title" content="ThreadLocal底层实现原理">
 <meta name="twitter:description" content="强引用、软引用、弱引用、虚引用 强引用：正常new出来对象就是强引用，当内存不够的时候，JVM宁可抛出异常，也不会回收强引用对象。 软引用(SoftReference)：软引用生命周期比强引用低，在内存不够的时候，会进行回收软引用对象。软引用对象经常和引用队列ReferenceQueue一起使用，在软引用所引用的对象被GC回收后，会把该引用加入到引用队列中。 弱引用(WeakReference)：">
 <meta name="twitter:image" content="https://okspy.github.io/blogimg/threadLocal/ThreadLocal%E5%BC%95%E7%94%A8.png">
 
@@ -127,7 +127,7 @@
 
 
 
-  <title> | okspy</title>
+  <title>ThreadLocal底层实现原理 | okspy</title>
   
 
 
@@ -251,7 +251,7 @@
 
         
         
-          <h1 class="post-title" itemprop="name headline"></h1>
+          <h1 class="post-title" itemprop="name headline">ThreadLocal底层实现原理</h1>
         
 
         <div class="post-meta">
@@ -263,7 +263,7 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-09-12T23:21:50+08:00">
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-09-12T23:33:30+08:00">
                 2019-09-12
               </time>
             
@@ -273,6 +273,28 @@
             
           </span>
 
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/线程与并发/" itemprop="url" rel="index">
+                    <span itemprop="name">线程与并发</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
           
 
           
@@ -387,8 +409,8 @@
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/2019/09/12/RabbitMQ/" rel="next" title="springboot+RabbitMQ">
-                <i class="fa fa-chevron-left"></i> springboot+RabbitMQ
+              <a href="/2019/09/12/hashMap/" rel="next" title="HashMap源码解读">
+                <i class="fa fa-chevron-left"></i> HashMap源码解读
               </a>
             
           </div>
@@ -396,10 +418,6 @@
           <span class="post-nav-divider"></span>
 
           <div class="post-nav-prev post-nav-item">
-            
-              <a href="/2019/09/12/hashMap/" rel="prev" title="HashMap源码解读">
-                HashMap源码解读 <i class="fa fa-chevron-right"></i>
-              </a>
             
           </div>
         </div>
@@ -487,7 +505,7 @@
               
               <div class="site-state-item site-state-categories">
                 
-                  <span class="site-state-item-count">2</span>
+                  <span class="site-state-item-count">3</span>
                   <span class="site-state-item-name">分类</span>
                 
               </div>
