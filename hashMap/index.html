@@ -79,12 +79,12 @@
 
 
 
-<meta name="description" content="HashMapJDK1.8的hashMap采用数组+链表+红黑树的结构，jdk1.7的hashMap采用数组+链表的结构，红黑树的目的是为了解决过长链表效率低的问题。JDK1.8修改了扩容机制，扩容时不需要计算hash，这个在后文会详细说明。 HashMap有几个重要的成员变量，见下表：    变量 含义    initialCapacity HashMap容量   loadFactory 负载因">
+<meta name="description" content="[TOC] HashMapJDK1.8的hashMap采用数组+链表+红黑树的结构，jdk1.7的hashMap采用数组+链表的结构，红黑树的目的是为了解决过长链表效率低的问题。JDK1.8修改了扩容机制，扩容时不需要计算hash，这个在后文会详细说明。 HashMap有几个重要的成员变量，见下表：    变量 含义    initialCapacity HashMap容量   loadFacto">
 <meta property="og:type" content="article">
 <meta property="og:title" content="hashMap源码解读">
 <meta property="og:url" content="http://yoursite.com/hashMap/index.html">
 <meta property="og:site_name" content="okspy">
-<meta property="og:description" content="HashMapJDK1.8的hashMap采用数组+链表+红黑树的结构，jdk1.7的hashMap采用数组+链表的结构，红黑树的目的是为了解决过长链表效率低的问题。JDK1.8修改了扩容机制，扩容时不需要计算hash，这个在后文会详细说明。 HashMap有几个重要的成员变量，见下表：    变量 含义    initialCapacity HashMap容量   loadFactory 负载因">
+<meta property="og:description" content="[TOC] HashMapJDK1.8的hashMap采用数组+链表+红黑树的结构，jdk1.7的hashMap采用数组+链表的结构，红黑树的目的是为了解决过长链表效率低的问题。JDK1.8修改了扩容机制，扩容时不需要计算hash，这个在后文会详细说明。 HashMap有几个重要的成员变量，见下表：    变量 含义    initialCapacity HashMap容量   loadFacto">
 <meta property="og:locale" content="zh-Hans">
 <meta property="og:image" content="https://raw.githubusercontent.com/okspy/image/master/hashmap/hash%E5%80%BC%E8%AE%A1%E7%AE%97.png">
 <meta property="og:image" content="https://raw.githubusercontent.com/okspy/image/master/hashmap/clip_image002.png">
@@ -98,10 +98,10 @@
 <meta property="og:image" content="https://raw.githubusercontent.com/okspy/image/master/hashmap/jdk1.7ResizeUnsafe02.png">
 <meta property="og:image" content="https://raw.githubusercontent.com/okspy/image/master/hashmap/clip_image002.png">
 <meta property="og:image" content="https://raw.githubusercontent.com/okspy/image/master/hashmap/clip_image002.png">
-<meta property="og:updated_time" content="2019-09-14T13:44:39.307Z">
+<meta property="og:updated_time" content="2019-09-14T14:31:32.130Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="hashMap源码解读">
-<meta name="twitter:description" content="HashMapJDK1.8的hashMap采用数组+链表+红黑树的结构，jdk1.7的hashMap采用数组+链表的结构，红黑树的目的是为了解决过长链表效率低的问题。JDK1.8修改了扩容机制，扩容时不需要计算hash，这个在后文会详细说明。 HashMap有几个重要的成员变量，见下表：    变量 含义    initialCapacity HashMap容量   loadFactory 负载因">
+<meta name="twitter:description" content="[TOC] HashMapJDK1.8的hashMap采用数组+链表+红黑树的结构，jdk1.7的hashMap采用数组+链表的结构，红黑树的目的是为了解决过长链表效率低的问题。JDK1.8修改了扩容机制，扩容时不需要计算hash，这个在后文会详细说明。 HashMap有几个重要的成员变量，见下表：    变量 含义    initialCapacity HashMap容量   loadFacto">
 <meta name="twitter:image" content="https://raw.githubusercontent.com/okspy/image/master/hashmap/hash%E5%80%BC%E8%AE%A1%E7%AE%97.png">
 
 
@@ -334,7 +334,8 @@
       
 
       
-        <h1 id="HashMap"><a href="#HashMap" class="headerlink" title="HashMap"></a>HashMap</h1><p>JDK1.8的hashMap采用数组+链表+红黑树的结构，jdk1.7的hashMap采用数组+链表的结构，红黑树的目的是为了解决过长链表效率低的问题。JDK1.8修改了扩容机制，扩容时不需要计算hash，这个在后文会详细说明。</p>
+        <p>[TOC]</p>
+<h1 id="HashMap"><a href="#HashMap" class="headerlink" title="HashMap"></a>HashMap</h1><p>JDK1.8的hashMap采用数组+链表+红黑树的结构，jdk1.7的hashMap采用数组+链表的结构，红黑树的目的是为了解决过长链表效率低的问题。JDK1.8修改了扩容机制，扩容时不需要计算hash，这个在后文会详细说明。</p>
 <p>HashMap有几个重要的成员变量，见下表：</p>
 <table>
 <thead>
@@ -400,26 +401,27 @@
 <p>创建新数组，假设hash的计算方法是key%数组大小，那么key为3和7的Entry均应落在新数组下标为3的位置，即<code>newTable[i]</code>的i为3。此时进入<code>while(null != e)</code>开始遍历旧数组下标为1的Entry</p>
 <p><img src="https://raw.githubusercontent.com/okspy/image/master/hashmap/jdk1.7Resize02.png" alt="1567599032354"></p>
 <center>resize初始阶段</center>
+执行`e.next = newTable[i]`，经计算，i的值为3，新的e.next 指向了新数组`newTable[3]`，`newTable[3]`是空的，所以新的e.next指向了null；
 
-<p>执行<code>e.next = newTable[i]</code>，经计算，i的值为3，新的e.next 指向了新数组<code>newTable[3]</code>，<code>newTable[3]</code>是空的，所以新的e.next指向了null；</p>
 <p>执行<code>newTable[i] = e</code>，将e插入<code>newTable[3]</code>对应的链表的头部</p>
 <p>执行<code>e=next</code>，此处的next存放的是旧的e.next，即上图中e.next（key=7）， 将e置为key的7的元素。</p>
 <p>经过上述三步，HashMap处于下图的状态，记为resize第二阶段完成：</p>
 <p><img src="https://raw.githubusercontent.com/okspy/image/master/hashmap/jdk1.7Resize03.png" alt="1567599724514"></p>
 <center>resize第二阶段结束</center>
+然后，再进行一次while循环，将key的7的元素移动至`newTable[3]`的头部，next指向了key=3的元素，这样就完成了整个Resize的过程。
 
-<p>然后，再进行一次while循环，将key的7的元素移动至<code>newTable[3]</code>的头部，next指向了key=3的元素，这样就完成了整个Resize的过程。</p>
 <p><img src="https://raw.githubusercontent.com/okspy/image/master/hashmap/jdk1.7Resize04.png" alt="1567599830776"></p>
 <center>resize完成</center>
+### 4.2 JDK1.7扩容的线程不安全问题
 
-<h3 id="4-2-JDK1-7扩容的线程不安全问题"><a href="#4-2-JDK1-7扩容的线程不安全问题" class="headerlink" title="4.2 JDK1.7扩容的线程不安全问题"></a>4.2 JDK1.7扩容的线程不安全问题</h3><p>为了便于理解，将transfer简化，只留下关键步骤：假设两个线程同时执行put操作，进入了transfer环节。</p>
+<p>为了便于理解，将transfer简化，只留下关键步骤：假设两个线程同时执行put操作，进入了transfer环节。</p>
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">0</span>  <span class="keyword">while</span>(<span class="keyword">null</span> != e) &#123;</span><br><span class="line"><span class="number">1</span>	  Entry&lt;K, V&gt; next = e.next; <span class="comment">// 线程1开始，此时e.next指向key为7的Entry</span></span><br><span class="line"><span class="number">2</span>	  e.next = newTable[i];<span class="comment">//线程1继续，e.next指向newTable[3],newTable[3]为空，e.next指向null</span></span><br><span class="line"><span class="number">3</span>     newTable[i] = e; <span class="comment">//线程1继续，将newtTable[3]赋值为key为3的Entry</span></span><br><span class="line">      <span class="comment">// 线程2在此刻开始执行第1步 Entry&lt;K, V&gt; next = e.next = null</span></span><br><span class="line">      <span class="comment">// 线程2执行第2步，e.next = newTable[3] = e</span></span><br><span class="line"><span class="number">4</span>	  e = next;</span><br><span class="line"><span class="number">5</span>  &#125;</span><br></pre></td></tr></table></figure>
 
 <p>代码块的注释是按照时间顺序的，在第3行线程1将<code>newTable[3]</code>的赋值为key为3的Entry后（未执行<code>e=next</code>），线程1的状态如下;</p>
 <p><img src="https://raw.githubusercontent.com/okspy/image/master/hashmap/jdk1.7resizeUnsafe01.png" alt="1567645309918"></p>
 <center>线程1执行完1~3步</center>
+线程2开始执行第1步，` Entry<k, v> next = e.next`，`e.next`此时被线程1修改为了null，所以对于线程2，`next = e.next = null`，然后线程2执行第二步，`e.next = newTable[3]`，`newTable[3]`已被线程1插入了e，所以对于线程2`e.next = e`，然后，线程2执行第3步，将key为3的Entry赋给`newTable[3]`，这个与线程1的操作重复了，不会有影响。此时，线程2的状态如下图。
 
-<p>线程2开始执行第1步，<code>Entry&lt;K, V&gt; next = e.next</code>，<code>e.next</code>此时被线程1修改为了null，所以对于线程2，<code>next = e.next = null</code>，然后线程2执行第二步，<code>e.next = newTable[3]</code>，<code>newTable[3]</code>已被线程1插入了e，所以对于线程2<code>e.next = e</code>，然后，线程2执行第3步，将key为3的Entry赋给<code>newTable[3]</code>，这个与线程1的操作重复了，不会有影响。此时，线程2的状态如下图。</p>
 <p><img src="https://raw.githubusercontent.com/okspy/image/master/hashmap/jdk1.7ResizeUnsafe02.png" alt="1567647285939"></p>
 <p>然后，线程2执行最后一步，<code>e = next</code>，发现<code>e = null</code>不满足<code>while</code>条件，跳出循环，此时，并没有出现死循环的问题，<strong>现在的问题仅仅是链表出现了闭环</strong>。</p>
 <p><strong>待下一次扩容时，才会出现死循环的问题</strong>，<code>e.next</code>永远为<code>e</code>，再也无法跳出循环。</p>
@@ -442,41 +444,14 @@
 <p>不过，HashMap本来就不是为多线程环境设计的，多线程应该使用ConcurrentHashMap。</p>
 <p>现在把目光放在上述代码块第15行的<code>if ((e.hash &amp; oldCap) == 0)</code>，它用来判断元素放置在lo链表还是hi链表，这两个链表分别插入在数组下标为旧下标<code>newTab[j]</code>和旧下标+旧容量处<code>newTab[j+oldCap]</code>。上述代码块的第一个注释为<code>如果e后面没有元素，说明没有哈希碰撞，直接赋值</code>，此处将e放置在了<code>newTab[e.hash &amp; (newCap - 1)]</code>处。而在前面介绍的put方法中，也出现了<code>tab[(n - 1) &amp; hash]</code>，我们发现总是将<code>n-1、hash</code>进行与操作<code>(&amp;)</code>，n表示数组容量，它总是2的n次幂，n的二进制如下：</p>
 <center>表2.1 数组容量与二进制值</center>
+| 数组容量N的十进制值 | 数组容量N的二进制值 | N-1的二进制值 |
+| ------------------- | ------------------- | ------------- |
+| 2                   | 0000 0010           | 0000 0001     |
+| 4                   | 0000 0100           | 0000 0011     |
+| 8                   | 0000 1000           | 0000 0111     |
+| 16                  | 0001 0000           | 0000 1111     |
+| ....                | 000100000..         | 0001111...    |
 
-<table>
-<thead>
-<tr>
-<th>数组容量N的十进制值</th>
-<th>数组容量N的二进制值</th>
-<th>N-1的二进制值</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>2</td>
-<td>0000 0010</td>
-<td>0000 0001</td>
-</tr>
-<tr>
-<td>4</td>
-<td>0000 0100</td>
-<td>0000 0011</td>
-</tr>
-<tr>
-<td>8</td>
-<td>0000 1000</td>
-<td>0000 0111</td>
-</tr>
-<tr>
-<td>16</td>
-<td>0001 0000</td>
-<td>0000 1111</td>
-</tr>
-<tr>
-<td>….</td>
-<td>000100000..</td>
-<td>0001111…</td>
-</tr>
-</tbody></table>
 <p>数组容量N的二进制值总是只有1位为1，其他位全是0，<strong>对于N-1的二进制，后<img src="https://raw.githubusercontent.com/okspy/image/master/hashmap/clip_image002.png" alt="img">位全部为1，将<img src="https://raw.githubusercontent.com/okspy/image/master/hashmap/clip_image002.png" alt="img">位记为标记位M，那么对于2N-1的二进制，它的标记位为M+1</strong>。<code>(n-1)&amp;hash</code>实际上就是<code>hash%(n-1)</code>，只不过JDK1.8采用了速度更快的位运算。<br>根据HashMap的数据散落原理，是取hash值然后对数组的大小取余，且每次扩容后，容量为扩容前的二倍，那么将旧数组容量oldCap记为N：</p>
 <p>​        e.hash &amp;（N-1） = oldPos  // 标记位为M</p>
 <p>​        e.hash &amp;  (2N-1) = newPos // 标记位为M+1</p>
@@ -562,7 +537,7 @@
 <p>如果是8,或者7，假如有大量的操作在长度7和8之间来回切换，这种结构的变换导致耗时更多，所以用6进行一个过渡。</p>
 </li>
 </ol>
-
+</k,>
       
     </div>
     
@@ -595,6 +570,10 @@
           <span class="post-nav-divider"></span>
 
           <div class="post-nav-prev post-nav-item">
+            
+              <a href="/mongodb/" rel="prev" title="mongoldb原理">
+                mongoldb原理 <i class="fa fa-chevron-right"></i>
+              </a>
             
           </div>
         </div>
@@ -671,7 +650,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">3</span>
+                  <span class="site-state-item-count">4</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -682,7 +661,7 @@
               
               <div class="site-state-item site-state-categories">
                 
-                  <span class="site-state-item-count">3</span>
+                  <span class="site-state-item-count">4</span>
                   <span class="site-state-item-name">分类</span>
                 
               </div>
@@ -717,7 +696,7 @@
             
 
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#HashMap"><span class="nav-number">1.</span> <span class="nav-text">HashMap</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-计算哈希"><span class="nav-number">1.1.</span> <span class="nav-text">1 计算哈希</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-put"><span class="nav-number">1.2.</span> <span class="nav-text">2 put</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-get"><span class="nav-number">1.3.</span> <span class="nav-text">3 get</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-扩容机制"><span class="nav-number">1.4.</span> <span class="nav-text">4 扩容机制</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-JDK1-7的扩容"><span class="nav-number">1.4.1.</span> <span class="nav-text">4.1 JDK1.7的扩容</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-JDK1-7扩容的线程不安全问题"><span class="nav-number">1.4.2.</span> <span class="nav-text">4.2 JDK1.7扩容的线程不安全问题</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-3-JDK1-8的扩容"><span class="nav-number">1.4.3.</span> <span class="nav-text">4.3 JDK1.8的扩容</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-equals和hashCode"><span class="nav-number">1.5.</span> <span class="nav-text">5 equals和hashCode</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#5-1-equals"><span class="nav-number">1.5.1.</span> <span class="nav-text">5.1 equals</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-2-hashcode"><span class="nav-number">1.5.2.</span> <span class="nav-text">5.2 hashcode</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-3-使用重写过equals-和hashcode-的对象作为Map的键"><span class="nav-number">1.5.3.</span> <span class="nav-text">5.3 使用重写过equals()和hashcode()的对象作为Map的键</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-细节疑问"><span class="nav-number">1.6.</span> <span class="nav-text">6 细节疑问</span></a></li></ol></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#HashMap"><span class="nav-number">1.</span> <span class="nav-text">HashMap</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-计算哈希"><span class="nav-number">1.1.</span> <span class="nav-text">1 计算哈希</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-put"><span class="nav-number">1.2.</span> <span class="nav-text">2 put</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-get"><span class="nav-number">1.3.</span> <span class="nav-text">3 get</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-扩容机制"><span class="nav-number">1.4.</span> <span class="nav-text">4 扩容机制</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-JDK1-7的扩容"><span class="nav-number">1.4.1.</span> <span class="nav-text">4.1 JDK1.7的扩容</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-3-JDK1-8的扩容"><span class="nav-number">1.4.2.</span> <span class="nav-text">4.3 JDK1.8的扩容</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-equals和hashCode"><span class="nav-number">1.5.</span> <span class="nav-text">5 equals和hashCode</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#5-1-equals"><span class="nav-number">1.5.1.</span> <span class="nav-text">5.1 equals</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-2-hashcode"><span class="nav-number">1.5.2.</span> <span class="nav-text">5.2 hashcode</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-3-使用重写过equals-和hashcode-的对象作为Map的键"><span class="nav-number">1.5.3.</span> <span class="nav-text">5.3 使用重写过equals()和hashcode()的对象作为Map的键</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-细节疑问"><span class="nav-number">1.6.</span> <span class="nav-text">6 细节疑问</span></a></li></ol></li></ol></div>
             
 
           </div>

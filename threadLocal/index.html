@@ -79,18 +79,18 @@
 
 
 
-<meta name="description" content="强引用、软引用、弱引用、虚引用在了解threadLocal之前，有必要了解JAVA中的四种引用：  强引用：正常new出来对象就是强引用，当内存不够的时候，JVM宁可抛出异常，也不会回收强引用对象。 软引用(SoftReference)：软引用生命周期比强引用低，在内存不够的时候，会进行回收软引用对象。软引用对象经常和引用队列ReferenceQueue一起使用，在软引用所引用的对象被GC回收后，">
+<meta name="description" content="[TOC] 强引用、软引用、弱引用、虚引用在了解threadLocal之前，有必要了解JAVA中的四种引用：  强引用：正常new出来对象就是强引用，当内存不够的时候，JVM宁可抛出异常，也不会回收强引用对象。 软引用(SoftReference)：软引用生命周期比强引用低，在内存不够的时候，会进行回收软引用对象。软引用对象经常和引用队列ReferenceQueue一起使用，在软引用所引用的对象被">
 <meta property="og:type" content="article">
 <meta property="og:title" content="threadLocal原理">
 <meta property="og:url" content="http://yoursite.com/threadLocal/index.html">
 <meta property="og:site_name" content="okspy">
-<meta property="og:description" content="强引用、软引用、弱引用、虚引用在了解threadLocal之前，有必要了解JAVA中的四种引用：  强引用：正常new出来对象就是强引用，当内存不够的时候，JVM宁可抛出异常，也不会回收强引用对象。 软引用(SoftReference)：软引用生命周期比强引用低，在内存不够的时候，会进行回收软引用对象。软引用对象经常和引用队列ReferenceQueue一起使用，在软引用所引用的对象被GC回收后，">
+<meta property="og:description" content="[TOC] 强引用、软引用、弱引用、虚引用在了解threadLocal之前，有必要了解JAVA中的四种引用：  强引用：正常new出来对象就是强引用，当内存不够的时候，JVM宁可抛出异常，也不会回收强引用对象。 软引用(SoftReference)：软引用生命周期比强引用低，在内存不够的时候，会进行回收软引用对象。软引用对象经常和引用队列ReferenceQueue一起使用，在软引用所引用的对象被">
 <meta property="og:locale" content="zh-Hans">
 <meta property="og:image" content="https://raw.githubusercontent.com/okspy/image/master/threadlocal/ThreadLocal%E5%BC%95%E7%94%A8.png">
-<meta property="og:updated_time" content="2019-09-14T13:47:50.575Z">
+<meta property="og:updated_time" content="2019-09-14T14:28:45.074Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="threadLocal原理">
-<meta name="twitter:description" content="强引用、软引用、弱引用、虚引用在了解threadLocal之前，有必要了解JAVA中的四种引用：  强引用：正常new出来对象就是强引用，当内存不够的时候，JVM宁可抛出异常，也不会回收强引用对象。 软引用(SoftReference)：软引用生命周期比强引用低，在内存不够的时候，会进行回收软引用对象。软引用对象经常和引用队列ReferenceQueue一起使用，在软引用所引用的对象被GC回收后，">
+<meta name="twitter:description" content="[TOC] 强引用、软引用、弱引用、虚引用在了解threadLocal之前，有必要了解JAVA中的四种引用：  强引用：正常new出来对象就是强引用，当内存不够的时候，JVM宁可抛出异常，也不会回收强引用对象。 软引用(SoftReference)：软引用生命周期比强引用低，在内存不够的时候，会进行回收软引用对象。软引用对象经常和引用队列ReferenceQueue一起使用，在软引用所引用的对象被">
 <meta name="twitter:image" content="https://raw.githubusercontent.com/okspy/image/master/threadlocal/ThreadLocal%E5%BC%95%E7%94%A8.png">
 
 
@@ -323,7 +323,8 @@
       
 
       
-        <h2 id="强引用、软引用、弱引用、虚引用"><a href="#强引用、软引用、弱引用、虚引用" class="headerlink" title="强引用、软引用、弱引用、虚引用"></a>强引用、软引用、弱引用、虚引用</h2><p>在了解threadLocal之前，有必要了解JAVA中的四种引用：</p>
+        <p>[TOC]</p>
+<h2 id="强引用、软引用、弱引用、虚引用"><a href="#强引用、软引用、弱引用、虚引用" class="headerlink" title="强引用、软引用、弱引用、虚引用"></a>强引用、软引用、弱引用、虚引用</h2><p>在了解threadLocal之前，有必要了解JAVA中的四种引用：</p>
 <ul>
 <li>强引用：正常new出来对象就是强引用，<strong>当内存不够的时候</strong>，JVM宁可抛出异常，也不会回收强引用对象。</li>
 <li>软引用(<code>SoftReference</code>)：软引用生命周期比强引用低，<strong>在内存不够的时候</strong>，会进行回收软引用对象。软引用对象经常和引用队列<code>ReferenceQueue</code>一起使用，在软引用所引用的对象被GC回收后，会把该引用加入到引用队列中。</li>
@@ -499,7 +500,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">3</span>
+                  <span class="site-state-item-count">4</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -510,7 +511,7 @@
               
               <div class="site-state-item site-state-categories">
                 
-                  <span class="site-state-item-count">3</span>
+                  <span class="site-state-item-count">4</span>
                   <span class="site-state-item-name">分类</span>
                 
               </div>
