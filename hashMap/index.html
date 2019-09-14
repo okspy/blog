@@ -79,12 +79,12 @@
 
 
 
-<meta name="description" content="[TOC] HashMapJDK1.8的hashMap采用数组+链表+红黑树的结构，jdk1.7的hashMap采用数组+链表的结构，红黑树的目的是为了解决过长链表效率低的问题。JDK1.8修改了扩容机制，扩容时不需要计算hash，这个在后文会详细说明。 HashMap有几个重要的成员变量，见下表：    变量 含义    initialCapacity HashMap容量   loadFacto">
+<meta name="description" content="HashMapJDK1.8的hashMap采用数组+链表+红黑树的结构，jdk1.7的hashMap采用数组+链表的结构，红黑树的目的是为了解决过长链表效率低的问题。JDK1.8修改了扩容机制，扩容时不需要计算hash，这个在后文会详细说明。 HashMap有几个重要的成员变量，见下表：    变量 含义    initialCapacity HashMap容量   loadFactory 负载因">
 <meta property="og:type" content="article">
 <meta property="og:title" content="hashMap源码解读">
 <meta property="og:url" content="http://yoursite.com/hashMap/index.html">
 <meta property="og:site_name" content="okspy">
-<meta property="og:description" content="[TOC] HashMapJDK1.8的hashMap采用数组+链表+红黑树的结构，jdk1.7的hashMap采用数组+链表的结构，红黑树的目的是为了解决过长链表效率低的问题。JDK1.8修改了扩容机制，扩容时不需要计算hash，这个在后文会详细说明。 HashMap有几个重要的成员变量，见下表：    变量 含义    initialCapacity HashMap容量   loadFacto">
+<meta property="og:description" content="HashMapJDK1.8的hashMap采用数组+链表+红黑树的结构，jdk1.7的hashMap采用数组+链表的结构，红黑树的目的是为了解决过长链表效率低的问题。JDK1.8修改了扩容机制，扩容时不需要计算hash，这个在后文会详细说明。 HashMap有几个重要的成员变量，见下表：    变量 含义    initialCapacity HashMap容量   loadFactory 负载因">
 <meta property="og:locale" content="zh-Hans">
 <meta property="og:image" content="https://raw.githubusercontent.com/okspy/image/master/hashmap/hash%E5%80%BC%E8%AE%A1%E7%AE%97.png">
 <meta property="og:image" content="https://raw.githubusercontent.com/okspy/image/master/hashmap/clip_image002.png">
@@ -98,10 +98,10 @@
 <meta property="og:image" content="https://raw.githubusercontent.com/okspy/image/master/hashmap/jdk1.7ResizeUnsafe02.png">
 <meta property="og:image" content="https://raw.githubusercontent.com/okspy/image/master/hashmap/clip_image002.png">
 <meta property="og:image" content="https://raw.githubusercontent.com/okspy/image/master/hashmap/clip_image002.png">
-<meta property="og:updated_time" content="2019-09-14T14:31:32.130Z">
+<meta property="og:updated_time" content="2019-09-14T14:38:06.008Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="hashMap源码解读">
-<meta name="twitter:description" content="[TOC] HashMapJDK1.8的hashMap采用数组+链表+红黑树的结构，jdk1.7的hashMap采用数组+链表的结构，红黑树的目的是为了解决过长链表效率低的问题。JDK1.8修改了扩容机制，扩容时不需要计算hash，这个在后文会详细说明。 HashMap有几个重要的成员变量，见下表：    变量 含义    initialCapacity HashMap容量   loadFacto">
+<meta name="twitter:description" content="HashMapJDK1.8的hashMap采用数组+链表+红黑树的结构，jdk1.7的hashMap采用数组+链表的结构，红黑树的目的是为了解决过长链表效率低的问题。JDK1.8修改了扩容机制，扩容时不需要计算hash，这个在后文会详细说明。 HashMap有几个重要的成员变量，见下表：    变量 含义    initialCapacity HashMap容量   loadFactory 负载因">
 <meta name="twitter:image" content="https://raw.githubusercontent.com/okspy/image/master/hashmap/hash%E5%80%BC%E8%AE%A1%E7%AE%97.png">
 
 
@@ -334,8 +334,7 @@
       
 
       
-        <p>[TOC]</p>
-<h1 id="HashMap"><a href="#HashMap" class="headerlink" title="HashMap"></a>HashMap</h1><p>JDK1.8的hashMap采用数组+链表+红黑树的结构，jdk1.7的hashMap采用数组+链表的结构，红黑树的目的是为了解决过长链表效率低的问题。JDK1.8修改了扩容机制，扩容时不需要计算hash，这个在后文会详细说明。</p>
+        <h1 id="HashMap"><a href="#HashMap" class="headerlink" title="HashMap"></a>HashMap</h1><p>JDK1.8的hashMap采用数组+链表+红黑树的结构，jdk1.7的hashMap采用数组+链表的结构，红黑树的目的是为了解决过长链表效率低的问题。JDK1.8修改了扩容机制，扩容时不需要计算hash，这个在后文会详细说明。</p>
 <p>HashMap有几个重要的成员变量，见下表：</p>
 <table>
 <thead>
