@@ -79,19 +79,19 @@
 
 
 
-<meta name="description" content="强引用、软引用、弱引用、虚引用 强引用：正常new出来对象就是强引用，当内存不够的时候，JVM宁可抛出异常，也不会回收强引用对象。 软引用(SoftReference)：软引用生命周期比强引用低，在内存不够的时候，会进行回收软引用对象。软引用对象经常和引用队列ReferenceQueue一起使用，在软引用所引用的对象被GC回收后，会把该引用加入到引用队列中。 弱引用(WeakReference)：">
+<meta name="description" content="强引用、软引用、弱引用、虚引用在了解threadLocal之前，有必要了解JAVA中的四种引用：  强引用：正常new出来对象就是强引用，当内存不够的时候，JVM宁可抛出异常，也不会回收强引用对象。 软引用(SoftReference)：软引用生命周期比强引用低，在内存不够的时候，会进行回收软引用对象。软引用对象经常和引用队列ReferenceQueue一起使用，在软引用所引用的对象被GC回收后，">
 <meta property="og:type" content="article">
-<meta property="og:title" content="ThreadLocal底层实现原理">
-<meta property="og:url" content="http://yoursite.com/2019/09/12/threadLocal/index.html">
+<meta property="og:title" content="threadLocal原理">
+<meta property="og:url" content="http://yoursite.com/threadLocal/index.html">
 <meta property="og:site_name" content="okspy">
-<meta property="og:description" content="强引用、软引用、弱引用、虚引用 强引用：正常new出来对象就是强引用，当内存不够的时候，JVM宁可抛出异常，也不会回收强引用对象。 软引用(SoftReference)：软引用生命周期比强引用低，在内存不够的时候，会进行回收软引用对象。软引用对象经常和引用队列ReferenceQueue一起使用，在软引用所引用的对象被GC回收后，会把该引用加入到引用队列中。 弱引用(WeakReference)：">
+<meta property="og:description" content="强引用、软引用、弱引用、虚引用在了解threadLocal之前，有必要了解JAVA中的四种引用：  强引用：正常new出来对象就是强引用，当内存不够的时候，JVM宁可抛出异常，也不会回收强引用对象。 软引用(SoftReference)：软引用生命周期比强引用低，在内存不够的时候，会进行回收软引用对象。软引用对象经常和引用队列ReferenceQueue一起使用，在软引用所引用的对象被GC回收后，">
 <meta property="og:locale" content="zh-Hans">
-<meta property="og:image" content="https://okspy.github.io/blogimg/threadLocal/ThreadLocal%E5%BC%95%E7%94%A8.png">
-<meta property="og:updated_time" content="2019-09-12T15:34:36.038Z">
+<meta property="og:image" content="https://raw.githubusercontent.com/okspy/image/master/threadlocal/ThreadLocal%E5%BC%95%E7%94%A8.png">
+<meta property="og:updated_time" content="2019-09-14T13:47:50.575Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="ThreadLocal底层实现原理">
-<meta name="twitter:description" content="强引用、软引用、弱引用、虚引用 强引用：正常new出来对象就是强引用，当内存不够的时候，JVM宁可抛出异常，也不会回收强引用对象。 软引用(SoftReference)：软引用生命周期比强引用低，在内存不够的时候，会进行回收软引用对象。软引用对象经常和引用队列ReferenceQueue一起使用，在软引用所引用的对象被GC回收后，会把该引用加入到引用队列中。 弱引用(WeakReference)：">
-<meta name="twitter:image" content="https://okspy.github.io/blogimg/threadLocal/ThreadLocal%E5%BC%95%E7%94%A8.png">
+<meta name="twitter:title" content="threadLocal原理">
+<meta name="twitter:description" content="强引用、软引用、弱引用、虚引用在了解threadLocal之前，有必要了解JAVA中的四种引用：  强引用：正常new出来对象就是强引用，当内存不够的时候，JVM宁可抛出异常，也不会回收强引用对象。 软引用(SoftReference)：软引用生命周期比强引用低，在内存不够的时候，会进行回收软引用对象。软引用对象经常和引用队列ReferenceQueue一起使用，在软引用所引用的对象被GC回收后，">
+<meta name="twitter:image" content="https://raw.githubusercontent.com/okspy/image/master/threadlocal/ThreadLocal%E5%BC%95%E7%94%A8.png">
 
 
 
@@ -121,13 +121,13 @@
 
 
 
-  <link rel="canonical" href="http://yoursite.com/2019/09/12/threadLocal/">
+  <link rel="canonical" href="http://yoursite.com/threadLocal/">
 
 
 
 
 
-  <title>ThreadLocal底层实现原理 | okspy</title>
+  <title>threadLocal原理 | okspy</title>
   
 
 
@@ -234,7 +234,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/09/12/threadLocal/">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/threadLocal/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="shipengyang">
@@ -251,7 +251,7 @@
 
         
         
-          <h1 class="post-title" itemprop="name headline">ThreadLocal底层实现原理</h1>
+          <h1 class="post-title" itemprop="name headline">threadLocal原理</h1>
         
 
         <div class="post-meta">
@@ -263,7 +263,7 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-09-12T23:33:30+08:00">
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-09-12T00:29:29+08:00">
                 2019-09-12
               </time>
             
@@ -286,8 +286,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/线程与并发/" itemprop="url" rel="index">
-                    <span itemprop="name">线程与并发</span>
+                  <a href="/categories/并发编程/" itemprop="url" rel="index">
+                    <span itemprop="name">并发编程</span>
                   </a>
                 </span>
 
@@ -323,7 +323,8 @@
       
 
       
-        <h2 id="强引用、软引用、弱引用、虚引用"><a href="#强引用、软引用、弱引用、虚引用" class="headerlink" title="强引用、软引用、弱引用、虚引用"></a>强引用、软引用、弱引用、虚引用</h2><ul>
+        <h2 id="强引用、软引用、弱引用、虚引用"><a href="#强引用、软引用、弱引用、虚引用" class="headerlink" title="强引用、软引用、弱引用、虚引用"></a>强引用、软引用、弱引用、虚引用</h2><p>在了解threadLocal之前，有必要了解JAVA中的四种引用：</p>
+<ul>
 <li>强引用：正常new出来对象就是强引用，<strong>当内存不够的时候</strong>，JVM宁可抛出异常，也不会回收强引用对象。</li>
 <li>软引用(<code>SoftReference</code>)：软引用生命周期比强引用低，<strong>在内存不够的时候</strong>，会进行回收软引用对象。软引用对象经常和引用队列<code>ReferenceQueue</code>一起使用，在软引用所引用的对象被GC回收后，会把该引用加入到引用队列中。</li>
 <li>弱引用(<code>WeakReference</code>)：弱引用生命周期比软引用要短，<strong>在下一次GC的时候</strong>，扫描到它所管辖的区域存在这样的对象： <code>一个对象仅仅被weak reference指向, 而没有任何其他strong reference指向,</code>，不管当前内存是否够，该对象都会被回收。弱引用和软引用一样，也会经常和引用队列<code>ReferenceQuene</code>一起使用，在弱引用所引用的对象被GC回收后，会把该引用加入到引用队列中。</li>
@@ -357,7 +358,7 @@
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">ThreadLocalMap</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">       <span class="comment">/**</span></span><br><span class="line"><span class="comment">        * The entries in this hash map extend WeakReference, using</span></span><br><span class="line"><span class="comment">        * its main ref field as the key (which is always a</span></span><br><span class="line"><span class="comment">        * ThreadLocal object).  Note that null keys (i.e. entry.get()</span></span><br><span class="line"><span class="comment">        * == null) mean that the key is no longer referenced, so the</span></span><br><span class="line"><span class="comment">        * entry can be expunged from table.  Such entries are referred to</span></span><br><span class="line"><span class="comment">        * as "stale entries" in the code that follows.</span></span><br><span class="line"><span class="comment">        */</span></span><br><span class="line">       <span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">Entry</span> <span class="keyword">extends</span> <span class="title">WeakReference</span>&lt;<span class="title">ThreadLocal</span>&lt;?&gt;&gt; </span>&#123;</span><br><span class="line">           <span class="comment">/** The value associated with this ThreadLocal. */</span></span><br><span class="line">           Object value;</span><br><span class="line"></span><br><span class="line">           Entry(ThreadLocal&lt;?&gt; k, Object v) &#123;</span><br><span class="line">               <span class="keyword">super</span>(k);</span><br><span class="line">               value = v;</span><br><span class="line">           &#125;</span><br><span class="line">       &#125;</span><br></pre></td></tr></table></figure>
 
 <p>在<code>threadlocal</code>的生命周期中,存在这些引用. 看下图: 实线代表强引用,虚线代表弱引用.</p>
-<p><img src="https://okspy.github.io/blogimg/threadLocal/ThreadLocal%E5%BC%95%E7%94%A8.png" alt="img"></p>
+<p><img src="https://raw.githubusercontent.com/okspy/image/master/threadlocal/ThreadLocal%E5%BC%95%E7%94%A8.png" alt="img"></p>
 <p>与上面的分析一致，Entry的key为弱引用，它的引用链是<code>ThreadLocalRef -&gt; ThreadLocal ---&gt; key</code>，当栈中的<code>ThreadLocalRef</code>与堆中的<code>ThreadLocal</code>断开时，<code>ThreadLocal</code>实例就会被垃圾回收。</p>
 <p>value为强引用，它的引用链是<code>CurrentThreadRef -&gt; CurrentThread -&gt; ThreadLocalMap -&gt; Entry -&gt; value</code>，只要当前线程没有关闭，<code>CurrentThreadRef -&gt; CurrentThread</code>的引用就不会断开，value就不会被垃圾回收。只有当前thread结束以后, <code>CurrentThread</code>就不会存在栈中,强引用断开, CurrentThread, Map, value将全部被GC回收.</p>
 <h3 id="2-是否存在内存泄露？"><a href="#2-是否存在内存泄露？" class="headerlink" title="2 是否存在内存泄露？"></a>2 是否存在内存泄露？</h3><p>上节提到当前线程没有退出，将会一直存在CurrentThread至value的引用链，即便将threadLocal手动设置为null也依然存在CurrentThread至value的引用链。这会给开发者产生一种<strong>内存泄露的错觉</strong>（错觉：value是通过threadLocal设置的，我明明将threadLocal设置为了null，为什么value还会占用内存？），尤其在使用线程池时更容易出现这样的错觉，因为线程池的线程结束后，会放回线程池中不销毁。</p>
@@ -409,8 +410,8 @@
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/2019/09/12/hashMap/" rel="next" title="HashMap源码解读">
-                <i class="fa fa-chevron-left"></i> HashMap源码解读
+              <a href="/RabbitMQ/" rel="next" title="springboot+RabbitMQ">
+                <i class="fa fa-chevron-left"></i> springboot+RabbitMQ
               </a>
             
           </div>
@@ -418,6 +419,10 @@
           <span class="post-nav-divider"></span>
 
           <div class="post-nav-prev post-nav-item">
+            
+              <a href="/hashMap/" rel="prev" title="hashMap源码解读">
+                hashMap源码解读 <i class="fa fa-chevron-right"></i>
+              </a>
             
           </div>
         </div>

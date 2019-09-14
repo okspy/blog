@@ -79,17 +79,17 @@
 
 
 
-<meta name="description" content="1 基础知识 参考rabbitMQ实战  2 连接管理spring AMQP默认使用CachingConnectionFactory创建一个应用程序共享的连接工厂，也是用途最广泛的ConnectionFactory构建方法，也为Junit提供了SingleConnectionFactory，SingleConncetionFactory不常用，不再赘述。 与AMQP通信的工作单元实际上是Chann">
+<meta name="description" content="1 基础知识 暂略，参考rabbitMQ基础，本文主要是对springboot集成RabbitMQ的解读。  2 连接管理spring AMQP默认使用CachingConnectionFactory创建一个应用程序共享的连接工厂，也是用途最广泛的ConnectionFactory构建方法，也为Junit提供了SingleConnectionFactory，SingleConncetionFact">
 <meta property="og:type" content="article">
 <meta property="og:title" content="springboot+RabbitMQ">
-<meta property="og:url" content="http://yoursite.com/2019/09/12/RabbitMQ/index.html">
+<meta property="og:url" content="http://yoursite.com/RabbitMQ/index.html">
 <meta property="og:site_name" content="okspy">
-<meta property="og:description" content="1 基础知识 参考rabbitMQ实战  2 连接管理spring AMQP默认使用CachingConnectionFactory创建一个应用程序共享的连接工厂，也是用途最广泛的ConnectionFactory构建方法，也为Junit提供了SingleConnectionFactory，SingleConncetionFactory不常用，不再赘述。 与AMQP通信的工作单元实际上是Chann">
+<meta property="og:description" content="1 基础知识 暂略，参考rabbitMQ基础，本文主要是对springboot集成RabbitMQ的解读。  2 连接管理spring AMQP默认使用CachingConnectionFactory创建一个应用程序共享的连接工厂，也是用途最广泛的ConnectionFactory构建方法，也为Junit提供了SingleConnectionFactory，SingleConncetionFact">
 <meta property="og:locale" content="zh-Hans">
-<meta property="og:updated_time" content="2019-09-11T16:37:47.948Z">
+<meta property="og:updated_time" content="2019-09-14T13:47:41.223Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="springboot+RabbitMQ">
-<meta name="twitter:description" content="1 基础知识 参考rabbitMQ实战  2 连接管理spring AMQP默认使用CachingConnectionFactory创建一个应用程序共享的连接工厂，也是用途最广泛的ConnectionFactory构建方法，也为Junit提供了SingleConnectionFactory，SingleConncetionFactory不常用，不再赘述。 与AMQP通信的工作单元实际上是Chann">
+<meta name="twitter:description" content="1 基础知识 暂略，参考rabbitMQ基础，本文主要是对springboot集成RabbitMQ的解读。  2 连接管理spring AMQP默认使用CachingConnectionFactory创建一个应用程序共享的连接工厂，也是用途最广泛的ConnectionFactory构建方法，也为Junit提供了SingleConnectionFactory，SingleConncetionFact">
 
 
 
@@ -119,7 +119,7 @@
 
 
 
-  <link rel="canonical" href="http://yoursite.com/2019/09/12/RabbitMQ/">
+  <link rel="canonical" href="http://yoursite.com/RabbitMQ/">
 
 
 
@@ -232,7 +232,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/09/12/RabbitMQ/">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/RabbitMQ/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="shipengyang">
@@ -322,7 +322,7 @@
 
       
         <h2 id="1-基础知识"><a href="#1-基础知识" class="headerlink" title="1 基础知识"></a>1 基础知识</h2><ul>
-<li>参考rabbitMQ实战</li>
+<li>暂略，参考rabbitMQ基础，本文主要是对springboot集成RabbitMQ的解读。</li>
 </ul>
 <h2 id="2-连接管理"><a href="#2-连接管理" class="headerlink" title="2 连接管理"></a>2 连接管理</h2><p>spring AMQP默认使用<code>CachingConnectionFactory</code>创建一个应用程序共享的连接工厂，也是用途最广泛的<code>ConnectionFactory</code>构建方法，也为Junit提供了<code>SingleConnectionFactory</code>，<code>SingleConncetionFactory</code>不常用，不再赘述。</p>
 <p>与AMQP通信的工作单元实际上是Channel，TCP连接可以共享。connectionFactory分为两种模式，一种是缓存channel，一种是缓存connection（同时也缓存该connection的channel）。默认是缓存channel的模式，<strong>高可用集群场景下（镜像队列）</strong>，通过负载均衡器连接至集群中不同的实例时，可以通过setCacheMode设置为缓存connection的模式。代码示例中给出了缓存connection的模式，同时也设置了<code>channelCacheSize</code>。</p>
@@ -651,8 +651,8 @@
 
           <div class="post-nav-prev post-nav-item">
             
-              <a href="/2019/09/12/hashMap/" rel="prev" title="HashMap源码解读">
-                HashMap源码解读 <i class="fa fa-chevron-right"></i>
+              <a href="/threadLocal/" rel="prev" title="threadLocal原理">
+                threadLocal原理 <i class="fa fa-chevron-right"></i>
               </a>
             
           </div>
