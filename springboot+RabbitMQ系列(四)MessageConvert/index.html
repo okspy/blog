@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-Hans">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Hexo, NexT">
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="可以为ListenerContainer和RabbitTemplate设置MessageConverter。这样就不用每次都写重复的消息格式转换代码了。spring提供的Message Converter均是双向的，负责将入站消息转换为特定结构（如：字节数组、序列化java对象、字符串、自定义的消息domain对象），将特定格式转换为出站消息。 消息格式springboot-amqp涉及到两种消息">
+<meta property="og:type" content="article">
+<meta property="og:title" content="springboot+RabbitMQ(四)MessageConvert">
+<meta property="og:url" content="http://yoursite.com/springboot+RabbitMQ系列(四)MessageConvert/index.html">
+<meta property="og:site_name" content="okspy">
+<meta property="og:description" content="可以为ListenerContainer和RabbitTemplate设置MessageConverter。这样就不用每次都写重复的消息格式转换代码了。spring提供的Message Converter均是双向的，负责将入站消息转换为特定结构（如：字节数组、序列化java对象、字符串、自定义的消息domain对象），将特定格式转换为出站消息。 消息格式springboot-amqp涉及到两种消息">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2019-09-15T02:22:17.646Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="springboot+RabbitMQ(四)MessageConvert">
+<meta name="twitter:description" content="可以为ListenerContainer和RabbitTemplate设置MessageConverter。这样就不用每次都写重复的消息格式转换代码了。spring提供的Message Converter均是双向的，负责将入站消息转换为特定结构（如：字节数组、序列化java对象、字符串、自定义的消息domain对象），将特定格式转换为出站消息。 消息格式springboot-amqp涉及到两种消息">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/springboot+RabbitMQ系列(四)MessageConvert/">
+
+
+
+
+
+  <title>springboot+RabbitMQ(四)MessageConvert | okspy</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">okspy</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/springboot+RabbitMQ系列(四)MessageConvert/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="shipengyang">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="okspy">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">springboot+RabbitMQ(四)MessageConvert</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-09-21T00:00:00+08:00">
+                2019-09-21
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/springboot/" itemprop="url" rel="index">
+                    <span itemprop="name">springboot</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>可以为<code>ListenerContainer</code>和<code>RabbitTemplate</code>设置<code>MessageConverter</code>。这样就不用每次都写重复的消息格式转换代码了。spring提供的Message Converter均是双向的，负责将入站消息转换为特定结构（如：字节数组、序列化java对象、字符串、自定义的消息domain对象），将特定格式转换为出站消息。</p>
+<h1 id="消息格式"><a href="#消息格式" class="headerlink" title="消息格式"></a>消息格式</h1><p>springboot-amqp涉及到两种消息格式，定义如下：</p>
+<ol>
+<li><p>org.springframework.messaging.Message&lt;?&gt; message，spring框架中通用的Message。简称<code>spring-messaging Message</code>。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">Message</span>&lt;<span class="title">T</span>&gt; </span>&#123;    </span><br><span class="line">		<span class="function">T <span class="title">getPayload</span><span class="params">()</span></span>;    </span><br><span class="line">		<span class="function">MessageHeaders <span class="title">getHeaders</span><span class="params">()</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p><code>spring AMQP Message</code>，spring为了适配AMQP协议，简化接口参数引入的。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Message</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> MessageProperties messageProperties;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">byte</span>[] body;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">Message</span><span class="params">(<span class="keyword">byte</span>[] body, MessageProperties messageProperties)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.body = body;</span><br><span class="line">        <span class="keyword">this</span>.messageProperties = messageProperties;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">byte</span>[] getBody() &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">this</span>.body;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> MessageProperties <span class="title">getMessageProperties</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">this</span>.messageProperties;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+</li>
+</ol>
+<p><code>spring-messaging Message</code>中的<code>payload</code>对应了<code>spring AMQP Message</code>中的<code>byte[] body</code>，他们均是Rabbit Client 中的body，即消息内容。</p>
+<p><code>spring-messaging Message</code>中的<code>MessageHeaders</code>对应了<code>spring AMQP Message</code>中的<code>MessageProperties</code>，他们均是Rabbit Client 中的<code>BasicProperties</code>，即消息头。</p>
+<p>因此，后文的MessgeConverter如不加特殊说明，均指的消息内容的格式转换。消息头的格式转换见<code>2.3.7 MessagePropertiesConverter</code></p>
+<h1 id="RabbitListener底层实现原理"><a href="#RabbitListener底层实现原理" class="headerlink" title="@RabbitListener底层实现原理"></a>@RabbitListener底层实现原理</h1><p>在了解MessageConveter之前，有必要清楚spring底层消息处理机制，此处以最常用的<code>@RabbitListener</code>为例。</p>
+<p>通过注解<code>@RabbitListener</code>声明一个消费者时，底层由<code>MessagingMessageListenerAdapter</code>的<code>onMessage()</code>负责处理消息。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">1</span> <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">onMessage</span><span class="params">(Message amqpMessage, Channel channel)</span> <span class="keyword">throws</span> Exception </span>&#123; </span><br><span class="line"><span class="number">2</span>    </span><br><span class="line"><span class="number">3</span>    org.springframework.messaging.Message&lt;?&gt; message = </span><br><span class="line"><span class="number">4</span>        <span class="keyword">this</span>.toMessagingMessage(amqpMessage);    </span><br><span class="line"><span class="number">5</span>    </span><br><span class="line"><span class="number">6</span>    <span class="keyword">if</span> (<span class="keyword">this</span>.logger.isDebugEnabled()) &#123;        </span><br><span class="line"><span class="number">7</span>        <span class="keyword">this</span>.logger.debug(<span class="string">"Processing ["</span> + message + <span class="string">"]"</span>);    </span><br><span class="line"><span class="number">8</span>    &#125;</span><br><span class="line"><span class="number">9</span>    </span><br><span class="line"><span class="number">10</span>    <span class="keyword">try</span> &#123;        </span><br><span class="line"><span class="number">11</span>        Object result = <span class="keyword">this</span>.invokeHandler(amqpMessage, channel, message);        </span><br><span class="line"><span class="number">12</span>        <span class="keyword">if</span> (result != <span class="keyword">null</span>) &#123;            </span><br><span class="line"><span class="number">13</span>            <span class="keyword">this</span>.handleResult(result, amqpMessage, channel, message);        </span><br><span class="line"><span class="number">14</span>        &#125; <span class="keyword">else</span> &#123;            </span><br><span class="line"><span class="number">15</span>            <span class="keyword">this</span>.logger.trace(<span class="string">"No result object given - no result to handle"</span>);        </span><br><span class="line"><span class="number">16</span>        &#125;    </span><br><span class="line"><span class="number">17</span>    &#125; <span class="keyword">catch</span> (ListenerExecutionFailedException var7) &#123;       </span><br><span class="line"><span class="number">18</span>        ListenerExecutionFailedException e = var7;        </span><br><span class="line"><span class="number">19</span>        <span class="keyword">if</span> (<span class="keyword">this</span>.errorHandler != <span class="keyword">null</span>) &#123;            </span><br><span class="line"><span class="number">20</span>            <span class="keyword">try</span> &#123;               </span><br><span class="line"><span class="number">21</span>                Object result = <span class="keyword">this</span>.errorHandler.handleError(amqpMessage, message, e); <span class="number">22</span>               </span><br><span class="line"><span class="number">23</span>                <span class="keyword">if</span> (result != <span class="keyword">null</span>) &#123;                    </span><br><span class="line"><span class="number">24</span>                    <span class="keyword">this</span>.handleResult(result, amqpMessage, channel, message);           <span class="number">25</span>  </span><br><span class="line"><span class="number">26</span>                &#125; <span class="keyword">else</span> &#123;                    </span><br><span class="line"><span class="number">27</span>                    <span class="keyword">this</span>.logger.trace(<span class="string">"Error handler returned no result"</span>);             <span class="number">28</span>  </span><br><span class="line"><span class="number">29</span>                &#125;            </span><br><span class="line"><span class="number">30</span>            &#125; <span class="keyword">catch</span> (Exception var6) &#123;                </span><br><span class="line"><span class="number">31</span>                <span class="keyword">this</span>.returnOrThrow(amqpMessage, channel, message, var6, var6);         <span class="number">32</span>  </span><br><span class="line"><span class="number">33</span>            &#125;        </span><br><span class="line"><span class="number">34</span>        &#125; <span class="keyword">else</span> &#123;            </span><br><span class="line"><span class="number">35</span>            <span class="keyword">this</span>.returnOrThrow(amqpMessage, channel, message, var7.getCause(), var7);   <span class="number">36</span>     </span><br><span class="line"><span class="number">37</span>        &#125;    </span><br><span class="line"><span class="number">38</span>    &#125;</span><br><span class="line"><span class="number">39</span> &#125;</span><br></pre></td></tr></table></figure>
+
+<p>3~4行，通过<code>toMessagingMessage()</code>将spring AMQP的Message转换为spring-messaging的Message。<code>this.getMessagingMessageConverter</code>是一个内部类的实例，内部类继承了<code>MessagingMessageConverter</code>，最终调用的是<code>MessagingMessageConverter</code>的<code>fromMessage</code>。完成Spring AMQP Message至spring-messaging Message的转换。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> org.springframework.messaging.Message&lt;?&gt; toMessagingMessage(Message amqpMessage) &#123;    </span><br><span class="line">    <span class="keyword">return</span> (org.springframework.messaging.Message)<span class="keyword">this</span></span><br><span class="line">        .getMessagingMessageConverter()</span><br><span class="line">        .fromMessage(amqpMessage);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// fromMessage</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> Object <span class="title">fromMessage</span><span class="params">(Message message)</span> <span class="keyword">throws</span> MessageConversionException </span>&#123;    </span><br><span class="line">    <span class="keyword">if</span> (message == <span class="keyword">null</span>) &#123;        </span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">null</span>;    </span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;        </span><br><span class="line">        Map&lt;String, Object&gt; mappedHeaders = </span><br><span class="line">            <span class="keyword">this</span>.headerMapper.toHeaders(message.getMessageProperties()); </span><br><span class="line">        </span><br><span class="line">        Object convertedObject = <span class="keyword">this</span>.extractPayload(message);  </span><br><span class="line">        </span><br><span class="line">        MessageBuilder&lt;Object&gt; builder = convertedObject <span class="keyword">instanceof</span> </span><br><span class="line">            org.springframework.messaging.Message ? </span><br><span class="line">       MessageBuilder.fromMessage((org.springframework.messaging.Message)convertedObject) </span><br><span class="line">            : MessageBuilder.withPayload(convertedObject);        </span><br><span class="line">        </span><br><span class="line">        <span class="keyword">return</span> builder.copyHeadersIfAbsent(mappedHeaders).build();    </span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>11行通过反射处理消息，调用的是<code>HandlerAdapter</code>中的<code>invoke()</code>，为了简便，把这些调用全部放在了同一个代码块中，一般地，使用<code>@RabbitListener</code>时不会自定义<code>invokHandler</code>，所以调用的是代理的反射方法：<code>delegatingHandler.invoke()</code></p>
+<p>再继续关注下<code>getMethodArgumentValues</code>，包含了两部分，一部分是预设参数转换，如：<code>Message</code>、<code>Channel</code>，这个也是最开始传入Spring AMQP的<code>Message</code>的原因，它的作用就是作为预设参数，另一部分是Listener中消息处理的其他自定义参数，如@Payload注解、@Headers注解等声明的参数，<code>args[i] == null</code>时，抛出<code>MethodArgumentResolutionException</code>异常，这就是1.3中异常抛出的地方，参数为空。该异常会一直向上抛，直至17行被捕获，如果在Listener容器中注册了<code>errorHandler</code>，调用<code>errorHandler</code>处理异常。</p>
+<p>还有一点值得注意的是：在整个过程中，真正作为消息载体的就是<code>spring-messaging.Message</code>而不是Spring AMQP的`Message。因此，<strong>消息处理的过程实际如下：</strong></p>
+<p><strong>调用RabbitMQ JAVA API接收消息并封装为<code>Spring AMQP Message</code>，在消息处理onMessage中调用<code>toMessagingMessage(Message amqpMessage)</code>将消息转换至<code>spring-messaging.Message</code>,通过反射处理消息。</strong></p>
+<p><strong>因此，消息转换实际上包含了两个过程，一个是消息的反序列化并封装为<code>Spring AMQP Message</code>，另一个是<code>Spring AMQP Message</code>与<code>spring-messaging.Message</code>之间的转换。</strong>后文中所指的消息转换如果不加特别说明，均指第一个转换。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> Object <span class="title">invokeHandler</span><span class="params">(Message amqpMessage, Channel channel, org.springframework.messaging.Message&lt;?&gt; message)</span> </span>&#123;    </span><br><span class="line">    <span class="keyword">try</span> &#123;        </span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">this</span>.handlerMethod.invoke(message, <span class="keyword">new</span> Object[]&#123;amqpMessage, channel&#125;);   </span><br><span class="line">    &#125; <span class="keyword">catch</span> (MessagingException var5) &#123;        </span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> </span><br><span class="line">            ListenerExecutionFailedException(<span class="keyword">this</span>.createMessagingErrorMessage(<span class="string">"Listener         	  method could not be invoked with the incoming message"</span>,                                   message.getPayload()),             </span><br><span class="line">            var5, amqpMessage);    </span><br><span class="line">    &#125; </span><br><span class="line">    <span class="keyword">catch</span> (Exception var6) &#123;        </span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> ListenerExecutionFailedException(<span class="string">"Listener method '"</span> +                  		  <span class="keyword">this</span>.handlerMethod.getMethodAsString(message.getPayload())                               + <span class="string">"' threw exception"</span>, var6, amqpMessage);    </span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//HandlerAdapter中的invoke</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> Object <span class="title">invoke</span><span class="params">(Message&lt;?&gt; message, Object... providedArgs)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (<span class="keyword">this</span>.invokerHandlerMethod != <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">this</span>.invokerHandlerMethod.invoke(message, providedArgs);</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (<span class="keyword">this</span>.delegatingHandler.hasDefaultHandler()) &#123;</span><br><span class="line">            Object[] args = <span class="keyword">new</span> Object[providedArgs.length + <span class="number">1</span>];</span><br><span class="line">            args[<span class="number">0</span>] = message.getPayload();</span><br><span class="line">            System.arraycopy(providedArgs, <span class="number">0</span>, args, <span class="number">1</span>, providedArgs.length);</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">this</span>.delegatingHandler.invoke(message, args);</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">this</span>.delegatingHandler.invoke(message, providedArgs);</span><br><span class="line">        &#125;   </span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// delegatingHandler.invoke()</span></span><br><span class="line"> <span class="function"><span class="keyword">public</span> Object <span class="title">invoke</span><span class="params">(Message&lt;?&gt; message, Object... providedArgs)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">        Class&lt;? extends Object&gt; payloadClass = message.getPayload().getClass();</span><br><span class="line">        InvocableHandlerMethod handler = <span class="keyword">this</span>.getHandlerForPayload(payloadClass);</span><br><span class="line">        Object result = handler.invoke(message, providedArgs);</span><br><span class="line">        <span class="keyword">if</span> (message.getHeaders().get(<span class="string">"amqp_replyTo"</span>) == <span class="keyword">null</span>) &#123;</span><br><span class="line">            Expression replyTo = (Expression)<span class="keyword">this</span>.handlerSendTo.get(handler);</span><br><span class="line">            <span class="keyword">if</span> (replyTo != <span class="keyword">null</span>) &#123;</span><br><span class="line">                result = <span class="keyword">new</span> ResultHolder(result, replyTo);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> result;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 代理完成的invoke</span></span><br><span class="line">    <span class="meta">@Nullable</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> Object <span class="title">invoke</span><span class="params">(Message&lt;?&gt; message, Object... providedArgs)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">        Object[] args = <span class="keyword">this</span>.getMethodArgumentValues(message, providedArgs);</span><br><span class="line">        <span class="keyword">if</span> (<span class="keyword">this</span>.logger.isTraceEnabled()) &#123;</span><br><span class="line">            <span class="keyword">this</span>.logger.trace(<span class="string">"Invoking '"</span> + 	 	                                                 ClassUtils.getQualifiedMethodName(<span class="keyword">this</span>.getMethod(), <span class="keyword">this</span>.getBeanType())</span><br><span class="line">                              + <span class="string">"' with arguments "</span> + Arrays.toString(args));</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        Object returnValue = <span class="keyword">this</span>.doInvoke(args);</span><br><span class="line">        <span class="keyword">if</span> (<span class="keyword">this</span>.logger.isTraceEnabled()) &#123;</span><br><span class="line">            <span class="keyword">this</span>.logger.trace(<span class="string">"Method ["</span> + 				    			                             ClassUtils.getQualifiedMethodName(<span class="keyword">this</span>.getMethod(),<span class="keyword">this</span>.getBeanType()) </span><br><span class="line">            + <span class="string">"] returned ["</span> + returnValue + <span class="string">"]"</span>);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> returnValue;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 关注下getMethodArgumentValues</span></span><br><span class="line"><span class="keyword">private</span> Object[] getMethodArgumentValues(Message&lt;?&gt; message, Object... providedArgs) <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        MethodParameter[] parameters = <span class="keyword">this</span>.getMethodParameters();</span><br><span class="line">        Object[] args = <span class="keyword">new</span> Object[parameters.length];</span><br><span class="line"></span><br><span class="line">        <span class="keyword">for</span>(<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; parameters.length; ++i) &#123;</span><br><span class="line">            MethodParameter parameter = parameters[i];</span><br><span class="line">            parameter.initParameterNameDiscovery(<span class="keyword">this</span>.parameterNameDiscoverer);</span><br><span class="line">            args[i] = <span class="keyword">this</span>.resolveProvidedArgument(parameter, providedArgs);<span class="comment">//预设参数的转换</span></span><br><span class="line">            <span class="keyword">if</span> (args[i] == <span class="keyword">null</span>) &#123;</span><br><span class="line">                <span class="keyword">if</span> (<span class="keyword">this</span>.argumentResolvers.supportsParameter(parameter)) &#123;</span><br><span class="line">                    <span class="keyword">try</span> &#123;</span><br><span class="line">                        args[i] = <span class="keyword">this</span>.argumentResolvers</span><br><span class="line">                            .resolveArgument(parameter, message);<span class="comment">// 自定义的参数的转换</span></span><br><span class="line">                    &#125; <span class="keyword">catch</span> (Exception var8) &#123;</span><br><span class="line">                        <span class="keyword">if</span> (<span class="keyword">this</span>.logger.isDebugEnabled()) &#123;</span><br><span class="line">                            <span class="keyword">this</span>.logger.debug(<span class="keyword">this</span>.getArgumentResolutionErrorMessage(</span><br><span class="line">                                <span class="string">"Failed to resolve"</span>, i), var8);</span><br><span class="line">                        &#125;</span><br><span class="line"></span><br><span class="line">                        <span class="keyword">throw</span> var8;</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125; <span class="keyword">else</span> <span class="keyword">if</span> (args[i] == <span class="keyword">null</span>) &#123;</span><br><span class="line">                    <span class="keyword">throw</span> <span class="keyword">new</span> MethodArgumentResolutionException(</span><br><span class="line">                        message, parameter, <span class="keyword">this</span>.getArgumentResolutionErrorMessage( </span><br><span class="line">                                            <span class="string">"No suitable resolver for"</span>, i));</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;       </span><br><span class="line">    <span class="keyword">return</span> args;   </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h1 id="已有的MessageConverter"><a href="#已有的MessageConverter" class="headerlink" title="已有的MessageConverter"></a>已有的MessageConverter</h1><p>前面提到，消息格式转换有两次，第一次转换完成序列化与反序列化的工作，被称为<code>Message Converter</code>，spring AMQP提供了默认的转换器<code>SimpleMessageConverter</code>。以反序列化为例，将Spring AMQP Message转换为字符串、序列化对象、字节数组，这次转换也是文中所指的Message Convert。反序列化源码如下：</p>
+<p>第二次转换，springboot默认使用的是GenericMessageConverter。它是属于org.springframework.messaging.包下的，继承了该包下的SimpleMessageConverter（第一次转换的SimpleMessageConverter在org.springframework.amqp包下），默认情况下，不需要特别的设置。</p>
+<p>spring-messaging的<code>MessageConverter</code>是所有消息转换器（无论是<code>spring-messaging</code>还是spring AMQP`）最底层的接口。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> org.springframework.messaging.converter;</span><br><span class="line"><span class="keyword">import</span> org.springframework.lang.Nullable;</span><br><span class="line"><span class="keyword">import</span> org.springframework.messaging.Message;</span><br><span class="line"><span class="keyword">import</span> org.springframework.messaging.MessageHeaders;</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">MessageConverter</span> </span>&#123;   </span><br><span class="line">    <span class="meta">@Nullable</span>    </span><br><span class="line">    <span class="function">Object <span class="title">fromMessage</span><span class="params">(Message&lt;?&gt; var1, Class&lt;?&gt; var2)</span></span>;    </span><br><span class="line">    </span><br><span class="line">    <span class="meta">@Nullable</span>    Message&lt;?&gt; toMessage(Object var1, <span class="meta">@Nullable</span> MessageHeaders var2);</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="SimpleMessageConverter"><a href="#SimpleMessageConverter" class="headerlink" title="SimpleMessageConverter"></a>SimpleMessageConverter</h2><p>spring AMQP的<code>SimpleMessageConverter</code>实现了<code>MessageConverter</code>接口（最底层），是默认的消息转换器。在未给<code>RabbitTemplate</code>配置message conveter时，将会调用<code>SimpleMessageConverter</code>的<code>fromMessage</code>和<code>createMessage</code>处理消息，从源码可以看出，支持三种类型：字符串、序列化java对象，字节数组。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> org.springframework.amqp.support.converter;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.io.ByteArrayInputStream;</span><br><span class="line"><span class="keyword">import</span> java.io.IOException;</span><br><span class="line"><span class="keyword">import</span> java.io.InputStream;</span><br><span class="line"><span class="keyword">import</span> java.io.ObjectInputStream;</span><br><span class="line"><span class="keyword">import</span> java.io.ObjectStreamClass;</span><br><span class="line"><span class="keyword">import</span> java.io.Serializable;</span><br><span class="line"><span class="keyword">import</span> java.io.UnsupportedEncodingException;</span><br><span class="line"><span class="keyword">import</span> org.springframework.amqp.core.Message;</span><br><span class="line"><span class="keyword">import</span> org.springframework.amqp.core.MessageProperties;</span><br><span class="line"><span class="keyword">import</span> org.springframework.amqp.utils.SerializationUtils;</span><br><span class="line"><span class="keyword">import</span> org.springframework.beans.factory.BeanClassLoaderAware;</span><br><span class="line"><span class="keyword">import</span> org.springframework.remoting.rmi.CodebaseAwareObjectInputStream;</span><br><span class="line"><span class="keyword">import</span> org.springframework.util.ClassUtils;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">SimpleMessageConverter</span> <span class="keyword">extends</span> <span class="title">WhiteListDeserializingMessageConverter</span> <span class="keyword">implements</span> <span class="title">BeanClassLoaderAware</span> </span>&#123;    </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> String DEFAULT_CHARSET = <span class="string">"UTF-8"</span>;    </span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">volatile</span> String defaultCharset = <span class="string">"UTF-8"</span>;    </span><br><span class="line">    <span class="keyword">private</span> String codebaseUrl;    </span><br><span class="line">    <span class="keyword">private</span> ClassLoader beanClassLoader = ClassUtils.getDefaultClassLoader();    </span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">SimpleMessageConverter</span><span class="params">()</span> </span>&#123;    &#125;    </span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setBeanClassLoader</span><span class="params">(ClassLoader beanClassLoader)</span> </span>&#123;        </span><br><span class="line">        <span class="keyword">this</span>.beanClassLoader = beanClassLoader;    </span><br><span class="line">    &#125;    </span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setCodebaseUrl</span><span class="params">(String codebaseUrl)</span> </span>&#123;        </span><br><span class="line">        <span class="keyword">this</span>.codebaseUrl = codebaseUrl;    </span><br><span class="line">    &#125;    </span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setDefaultCharset</span><span class="params">(String defaultCharset)</span> </span>&#123;        </span><br><span class="line">        <span class="keyword">this</span>.defaultCharset = defaultCharset != <span class="keyword">null</span> ? defaultCharset : <span class="string">"UTF-8"</span>;    </span><br><span class="line">    &#125;    </span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="keyword">public</span> Object <span class="title">fromMessage</span><span class="params">(Message message)</span> <span class="keyword">throws</span> MessageConversionException </span>&#123; </span><br><span class="line">        Object content = <span class="keyword">null</span>;        </span><br><span class="line">        MessageProperties properties = message.getMessageProperties();        </span><br><span class="line">        </span><br><span class="line">        <span class="keyword">if</span> (properties != <span class="keyword">null</span>) &#123;            </span><br><span class="line">            String contentType = properties.getContentType();            </span><br><span class="line">            <span class="keyword">if</span> (contentType != <span class="keyword">null</span> &amp;&amp; contentType.startsWith(<span class="string">"text"</span>)) &#123;                </span><br><span class="line">                String encoding = properties.getContentEncoding();                </span><br><span class="line">                <span class="keyword">if</span> (encoding == <span class="keyword">null</span>) &#123;                    </span><br><span class="line">                    encoding = <span class="keyword">this</span>.defaultCharset;                </span><br><span class="line">                &#125;                </span><br><span class="line">                </span><br><span class="line">                <span class="keyword">try</span> &#123;                    </span><br><span class="line">                    content = <span class="keyword">new</span> String(message.getBody(), encoding);                </span><br><span class="line">                &#125; <span class="keyword">catch</span> (UnsupportedEncodingException var8) &#123;                    </span><br><span class="line">                    <span class="keyword">throw</span> <span class="keyword">new</span> MessageConversionException(<span class="string">"failed to convert text-based                                                            Message content"</span>, var8);         </span><br><span class="line">                &#125;            </span><br><span class="line">            &#125; <span class="keyword">else</span> <span class="keyword">if</span> (contentType != <span class="keyword">null</span> </span><br><span class="line">                       &amp;&amp; contentType.equals(<span class="string">"application/x-java-serialized-object"</span>)) &#123;                </span><br><span class="line">              		<span class="keyword">try</span> &#123;                    </span><br><span class="line">                        content = SerializationUtils</span><br><span class="line">                            .deserialize(<span class="keyword">this</span>.createObjectInputStream(</span><br><span class="line">                       <span class="keyword">new</span> ByteArrayInputStream(message.getBody()),<span class="keyword">this</span>.codebaseUrl));                &#125; <span class="keyword">catch</span> (IllegalArgumentException                                                                 | IllegalStateException                                                                   | IOException var7) &#123;                    </span><br><span class="line">                        <span class="keyword">throw</span> <span class="keyword">new</span> MessageConversionException(<span class="string">"failed to convert                                                           serialized Message content"</span>, var7);       </span><br><span class="line">                    &#125;            </span><br><span class="line">            &#125;        </span><br><span class="line">        &#125;        </span><br><span class="line">        </span><br><span class="line">        <span class="keyword">if</span> (content == <span class="keyword">null</span>) &#123;            </span><br><span class="line">            content = message.getBody();        </span><br><span class="line">        &#125;        </span><br><span class="line">        </span><br><span class="line">        <span class="keyword">return</span> content;    </span><br><span class="line">    </span><br><span class="line">    &#125;    </span><br><span class="line">    </span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="keyword">protected</span> Message <span class="title">createMessage</span><span class="params">(Object object, MessageProperties messageProperties)</span> </span></span><br><span class="line"><span class="function">                                                    <span class="keyword">throws</span> MessageConversionException </span>&#123;        </span><br><span class="line">        <span class="keyword">byte</span>[] bytes = <span class="keyword">null</span>;        </span><br><span class="line">        <span class="keyword">if</span> (object <span class="keyword">instanceof</span> <span class="keyword">byte</span>[]) &#123;            </span><br><span class="line">            bytes = (<span class="keyword">byte</span>[])((<span class="keyword">byte</span>[])object);            </span><br><span class="line">            messageProperties.setContentType(<span class="string">"application/octet-stream"</span>);        </span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (object <span class="keyword">instanceof</span> String) &#123;            </span><br><span class="line">            <span class="keyword">try</span> &#123;                </span><br><span class="line">                bytes = ((String)object).getBytes(<span class="keyword">this</span>.defaultCharset);            </span><br><span class="line">            &#125; <span class="keyword">catch</span> (UnsupportedEncodingException var6) &#123;                </span><br><span class="line">                <span class="keyword">throw</span> <span class="keyword">new</span> MessageConversionException(<span class="string">"failed to convert to Message                                                             content"</span>, var6);            </span><br><span class="line">            &#125;            </span><br><span class="line">            messageProperties.setContentType(<span class="string">"text/plain"</span>);           </span><br><span class="line">            messageProperties.setContentEncoding(<span class="keyword">this</span>.defaultCharset);        </span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (object <span class="keyword">instanceof</span> Serializable) &#123;            </span><br><span class="line">            <span class="keyword">try</span> &#123;                </span><br><span class="line">                bytes = SerializationUtils.serialize(object);            </span><br><span class="line">            &#125; <span class="keyword">catch</span> (IllegalArgumentException var5) &#123;                </span><br><span class="line">                <span class="keyword">throw</span> <span class="keyword">new</span> MessageConversionException(<span class="string">"failed to convert to serialized                                                          Message content"</span>, var5);            </span><br><span class="line">            &#125;            </span><br><span class="line">            messageProperties.setContentType(<span class="string">"application/x-java-serialized-object"</span>);        </span><br><span class="line">        &#125;        </span><br><span class="line">        </span><br><span class="line">        <span class="keyword">if</span> (bytes != <span class="keyword">null</span>) &#123;            </span><br><span class="line">            messageProperties.setContentLength((<span class="keyword">long</span>)bytes.length);            </span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">new</span> Message(bytes, messageProperties);        </span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;            </span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException(<span class="keyword">this</span>.getClass().getSimpleName() + <span class="string">" only                            supports String, byte[] and Serializable payloads, received: "</span> + </span><br><span class="line">                                               object.getClass().getName());        </span><br><span class="line">        &#125;    </span><br><span class="line">    &#125;    </span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="keyword">protected</span> ObjectInputStream <span class="title">createObjectInputStream</span><span class="params">(InputStream is, String </span></span></span><br><span class="line"><span class="function"><span class="params">                                                        codebaseUrl)</span> <span class="keyword">throws</span> IOException </span>&#123; </span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> CodebaseAwareObjectInputStream(is, <span class="keyword">this</span>.beanClassLoader, codebaseUrl) </span><br><span class="line">        &#123;            </span><br><span class="line">            <span class="keyword">protected</span> Class&lt;?&gt; resolveClass(ObjectStreamClass classDesc) <span class="keyword">throws</span> </span><br><span class="line">                IOException, ClassNotFoundException &#123;                </span><br><span class="line">                Class&lt;?&gt; clazz = <span class="keyword">super</span>.resolveClass(classDesc);                </span><br><span class="line">                SimpleMessageConverter.<span class="keyword">this</span>.checkWhiteList(clazz);                </span><br><span class="line">                <span class="keyword">return</span> clazz;            </span><br><span class="line">            &#125;        </span><br><span class="line">        &#125;;    </span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="SerializerMessageConverter"><a href="#SerializerMessageConverter" class="headerlink" title="SerializerMessageConverter"></a>SerializerMessageConverter</h2><p>与<code>SimpleMessageConverter</code>类似，唯一不同的是，多了一个属性用来自定义序列化与反序列化规则。</p>
+<h2 id="Jackson2JsonMessageConverter"><a href="#Jackson2JsonMessageConverter" class="headerlink" title="Jackson2JsonMessageConverter"></a>Jackson2JsonMessageConverter</h2><p>消息载体是网络字节序时，使用默认的<code>SimpleMessageConverter</code>就足够了，但是消息载体为java序列化对象<code>application/x-java-serialized-object</code>时，不利于跨语言和跨平台，更推荐使用JSON作为消息的载体，<code>Jackson2JsonMessageConverter</code>负责JSON和java bean之间转换。使用时将<code>jsonConverter</code>注入<code>rabbitTemplate</code>实例中,替换<code>SimpleMessageConverter</code>。在替换后，收发消息可以直接发送消息Object的实例，大大得简化了开发。</p>
+<p><strong>注意事项：</strong></p>
+<p>使用时，需要生产者额外在消息头中添加一个字段<code>”__ TypeId __ “</code>用于注明该消息映射的domain对象，在下方的示例中，头信息中的字段<code>&quot;__ TypeId __&quot;</code>分别<code>&quot;foo&quot;</code>和<code>”bar“</code>如果生产者未注明，可以为classMapper设置默认值映射domain对象，例如：<code>classMapper.setDefaultType(MyMessage.class)</code>。</p>
+<p>需要生产者在消息头注明contentType为<code>application/json或text/x-json</code> 或者生产者也使用 <code>Jackson2JsonMessageConverter</code>，它会自动在消息头中声明contentType。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Bean</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> Jackson2JsonMessageConverter <span class="title">jsonMessageConverter</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    Jackson2JsonMessageConverter jsonConverter = <span class="keyword">new</span> Jackson2JsonMessageConverter();</span><br><span class="line">    jsonConverter.setClassMapper(classMapper());</span><br><span class="line">    <span class="keyword">return</span> jsonConverter;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">@Bean</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> DefaultClassMapper <span class="title">classMapper</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    DefaultClassMapper classMapper = <span class="keyword">new</span> DefaultClassMapper();</span><br><span class="line">    Map&lt;String, Class&lt;?&gt;&gt; idClassMapping = <span class="keyword">new</span> HashMap&lt;&gt;();</span><br><span class="line">    idClassMapping.put(<span class="string">"foo"</span>, Foo.class);</span><br><span class="line">    idClassMapping.put(<span class="string">"bar"</span>, Bar.class);</span><br><span class="line">    classMapper.setIdClassMapping(idClassMapping);</span><br><span class="line">    <span class="keyword">return</span> classMapper;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="ContentTypeDelegatingMessageConverter"><a href="#ContentTypeDelegatingMessageConverter" class="headerlink" title="ContentTypeDelegatingMessageConverter"></a>ContentTypeDelegatingMessageConverter</h2><p>顾名思义，<code>ContentTypeDelegatingMessageConverter</code>是一个根据消息头中<code>content-Type</code>动态选择<code>MessageConverter</code>的Message Converter。当<code>content-Type</code>为空或根据<code>content-Type</code>匹配不到<code>MessageConverter</code>时，将Message Convert的任务委托给<code>SimpleMessageConverter</code></p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">&lt;bean id=<span class="string">"contentTypeConverter"</span> <span class="class"><span class="keyword">class</span></span>=<span class="string">"ContentTypeDelegatingMessageConverter"</span>&gt;</span><br><span class="line">    &lt;property name=<span class="string">"delegates"</span>&gt;</span><br><span class="line">        &lt;map&gt;</span><br><span class="line">            &lt;entry key=<span class="string">"application/json"</span> value-ref=<span class="string">"jsonMessageConverter"</span> /&gt;</span><br><span class="line">            &lt;entry key=<span class="string">"application/xml"</span> value-ref=<span class="string">"xmlMessageConverter"</span> /&gt;</span><br><span class="line">        &lt;/map&gt;</span><br><span class="line">    &lt;/property&gt;</span><br><span class="line">&lt;/bean&gt;</span><br></pre></td></tr></table></figure>
+
+<h2 id="MarshallingMessageConverter"><a href="#MarshallingMessageConverter" class="headerlink" title="MarshallingMessageConverter"></a>MarshallingMessageConverter</h2><p>负责Spring的Object与XML之间的转换。</p>
+<h1 id="为默认的Message-Converter设置反序列化权限"><a href="#为默认的Message-Converter设置反序列化权限" class="headerlink" title="为默认的Message Converter设置反序列化权限"></a>为默认的Message Converter设置反序列化权限</h1><p>在处理 <code>content-type</code> 为<code>application/x-java-serialized-object</code>的java序列化对象时，默认会扫描所有的packages/classes，为了提高安全性，可以设置白名单，所有的Message Converter都有一个属性whiteListPatterns，示例如下:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">SimpleMessageConverter messageConverter = <span class="keyword">new</span> SimpleMessageConverter();List&lt;String&gt; </span><br><span class="line"></span><br><span class="line">myWhiteList = <span class="keyword">new</span> ArrayList&lt;&gt;(<span class="number">10</span>);</span><br><span class="line">myWhiteList.add(<span class="string">"safe.*"</span>);</span><br><span class="line">myWhiteList.add(<span class="string">"unstable.recent.SafeClass"</span>);</span><br><span class="line">myWhiteList.add(<span class="string">"*.MySafeClass"</span>);</span><br><span class="line"></span><br><span class="line">messageConverter.setWhiteListPatterns(myWhiteList);</span><br></pre></td></tr></table></figure>
+
+<p>注意：该属性仅在<code>Message Converter</code>使用<code>DefaultDeserializer</code>有效，即不要主动去配置<code>DefaultDeserializer</code>。</p>
+<h1 id="特殊的Conerter——MessagePropertiesConverter"><a href="#特殊的Conerter——MessagePropertiesConverter" class="headerlink" title="特殊的Conerter——MessagePropertiesConverter"></a>特殊的Conerter——MessagePropertiesConverter</h1><p>前面介绍的MessageConverter负责body的转换，MessagePropertiesConverter 负责Rabbit Client的<code>BasicProperties</code>与Spring AMQP <code>MessageProperties</code>之间的转换，它的默认实现是<code>DefaultMessagePropertiesConverter</code>，足以满足绝多数场景下的需求。部分源码如下，仅截取了构造器和属性声明，当<code>BasicProperties</code>中的某一元素长度小于等于<code>longStringLimit</code>时，转化为<code>MessageProperties</code>中的String属性，当<code>BasicProperties</code>中的某一元素长度超过<code>longStringLimit</code>时，根据<code>convertLongLongStrings</code>判断是否需要转换为LongString，如果不需要则转换为<code>DataInputStream</code></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">DefaultMessagePropertiesConverter</span> <span class="keyword">implements</span> <span class="title">MessagePropertiesConverter</span> </span>&#123;    </span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> DEFAULT_LONG_STRING_LIMIT = <span class="number">1024</span>;    </span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">int</span> longStringLimit;    </span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">boolean</span> convertLongLongStrings;</span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">DefaultMessagePropertiesConverter</span><span class="params">()</span> </span>&#123;        </span><br><span class="line">        <span class="keyword">this</span>(<span class="number">1024</span>, <span class="keyword">false</span>);    </span><br><span class="line">    &#125;    </span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">DefaultMessagePropertiesConverter</span><span class="params">(<span class="keyword">int</span> longStringLimit)</span> </span>&#123;        </span><br><span class="line">        <span class="keyword">this</span>(longStringLimit, <span class="keyword">false</span>);    </span><br><span class="line">    &#125;    </span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">DefaultMessagePropertiesConverter</span><span class="params">(<span class="keyword">int</span> longStringLimit, </span></span></span><br><span class="line"><span class="function"><span class="params">                                             <span class="keyword">boolean</span> convertLongLongStrings)</span> </span>&#123;        </span><br><span class="line">        <span class="keyword">this</span>.longStringLimit = longStringLimit;        </span><br><span class="line">        <span class="keyword">this</span>.convertLongLongStrings = convertLongLongStrings;    </span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="keyword">private</span> Object <span class="title">convertLongString</span><span class="params">(LongString longString, String charset)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="keyword">if</span> (longString.length() &lt;= (<span class="keyword">long</span>)<span class="keyword">this</span>.longStringLimit) &#123;</span><br><span class="line">                <span class="keyword">return</span> <span class="keyword">new</span> String(longString.getBytes(), charset);</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                <span class="keyword">return</span> <span class="keyword">this</span>.convertLongLongStrings ? longString.getStream() : longString;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception var4) &#123;</span><br><span class="line">            <span class="keyword">throw</span> RabbitExceptionTranslator.convertRabbitAccessException(var4);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/springboot+RabbitMQ系列（二）生产者/" rel="next" title="springboot+RabbitMQ系列（二）生产者">
+                <i class="fa fa-chevron-left"></i> springboot+RabbitMQ系列（二）生产者
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/springboot+RabbitMQ系列(三)消费者/" rel="prev" title="springboot+RabbitMQ(三)消费者">
+                springboot+RabbitMQ(三)消费者 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">shipengyang</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">10</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                
+                  <span class="site-state-item-count">4</span>
+                  <span class="site-state-item-name">分类</span>
+                
+              </div>
+            
+
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#消息格式"><span class="nav-number">1.</span> <span class="nav-text">消息格式</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#RabbitListener底层实现原理"><span class="nav-number">2.</span> <span class="nav-text">@RabbitListener底层实现原理</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#已有的MessageConverter"><span class="nav-number">3.</span> <span class="nav-text">已有的MessageConverter</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#SimpleMessageConverter"><span class="nav-number">3.1.</span> <span class="nav-text">SimpleMessageConverter</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#SerializerMessageConverter"><span class="nav-number">3.2.</span> <span class="nav-text">SerializerMessageConverter</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Jackson2JsonMessageConverter"><span class="nav-number">3.3.</span> <span class="nav-text">Jackson2JsonMessageConverter</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ContentTypeDelegatingMessageConverter"><span class="nav-number">3.4.</span> <span class="nav-text">ContentTypeDelegatingMessageConverter</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#MarshallingMessageConverter"><span class="nav-number">3.5.</span> <span class="nav-text">MarshallingMessageConverter</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#为默认的Message-Converter设置反序列化权限"><span class="nav-number">4.</span> <span class="nav-text">为默认的Message Converter设置反序列化权限</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#特殊的Conerter——MessagePropertiesConverter"><span class="nav-number">5.</span> <span class="nav-text">特殊的Conerter——MessagePropertiesConverter</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">shipengyang</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
