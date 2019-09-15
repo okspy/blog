@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-Hans">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Hexo, NexT">
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="消息接收有两种模式，简单的模式是消费者不断地去轮询，轮询到一条就消费一条，复杂些的模式是注册一个异步Listener，由容器负责接收消息并选择对应的Listener处理消息。 轮询模式消费者在springboot-amqp中，可使用AmqpTemplate（rabbitTemplate）实现轮询模式接收消息，默认是阻塞的，有消息时就拉去消息，没有消息时，立刻返回null。 从springboot1">
+<meta property="og:type" content="article">
+<meta property="og:title" content="springboot+RabbitMQ(三)消费者">
+<meta property="og:url" content="http://yoursite.com/springboot+RabbitMQ(三)消费者/index.html">
+<meta property="og:site_name" content="okspy">
+<meta property="og:description" content="消息接收有两种模式，简单的模式是消费者不断地去轮询，轮询到一条就消费一条，复杂些的模式是注册一个异步Listener，由容器负责接收消息并选择对应的Listener处理消息。 轮询模式消费者在springboot-amqp中，可使用AmqpTemplate（rabbitTemplate）实现轮询模式接收消息，默认是阻塞的，有消息时就拉去消息，没有消息时，立刻返回null。 从springboot1">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2019-09-15T02:00:40.292Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="springboot+RabbitMQ(三)消费者">
+<meta name="twitter:description" content="消息接收有两种模式，简单的模式是消费者不断地去轮询，轮询到一条就消费一条，复杂些的模式是注册一个异步Listener，由容器负责接收消息并选择对应的Listener处理消息。 轮询模式消费者在springboot-amqp中，可使用AmqpTemplate（rabbitTemplate）实现轮询模式接收消息，默认是阻塞的，有消息时就拉去消息，没有消息时，立刻返回null。 从springboot1">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/springboot+RabbitMQ(三)消费者/">
+
+
+
+
+
+  <title>springboot+RabbitMQ(三)消费者 | okspy</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">okspy</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/springboot+RabbitMQ(三)消费者/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="shipengyang">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="okspy">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">springboot+RabbitMQ(三)消费者</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-09-23T00:00:00+08:00">
+                2019-09-23
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/springboot/" itemprop="url" rel="index">
+                    <span itemprop="name">springboot</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p><em>消息接收有两种模式，简单的模式是消费者不断地去轮询，轮询到一条就消费一条，复杂些的模式是注册一个异步Listener，由容器负责接收消息并选择对应的Listener处理消息。</em></p>
+<h1 id="轮询模式消费者"><a href="#轮询模式消费者" class="headerlink" title="轮询模式消费者"></a>轮询模式消费者</h1><p>在<code>springboot-amqp</code>中，可使用<code>AmqpTemplate（rabbitTemplate）</code>实现轮询模式接收消息，默认是阻塞的，有消息时就拉去消息，没有消息时，立刻返回null。</p>
+<p>从springboot1.5版本以后，可以设置单次轮8询的超时时间，即消费者接收消息的阻塞时间，超时时间设置为负值，意味着无限期阻塞。并发量高时，建议使用异步Listener或将超时时间设为0.</p>
+<p>如果需要转换消息格式，需要预先为AmpqTemplate设置<code>MessageConverter</code>，然后调用<code>receiveAndConvert（）</code>方法接收消息。</p>
+<p>如果需要Replay，可以在调用<code>amqpTemplate.receiveAndReply()</code>接口时传入<code>ReceiveAndReplyCallBack</code>。</p>
+<h1 id="异步消费者"><a href="#异步消费者" class="headerlink" title="异步消费者"></a>异步消费者</h1><p> 异步消费者中有一个预取消息（prefetch）的概念，即一个消费者预取一定数目的消息，这可能会导致多消费者情况下其他消费者利用率不足。springboot 2.0之前，预取消息默认值是1，spring boot 2.0以后，默认值为250, 预取值的设置取决于你的业务，要尽可能保证所有消费者的高效运行从而提升吞吐量。比如：</p>
+<ol>
+<li>当单条消息体很大，消息处理的又比较慢时，预取值如果设置的过大，将导致客户端内存占用率飙升。</li>
+<li>如果严格的要求执行顺序时，建议预取值设置为1 </li>
+<li>在消息吞吐量不高、消费者又多时，预取值设置的过大会导致消费者利用率不足。</li>
+<li>在手动确认的模式下，预取值应该设置为1，如果prefech不为1，basicAck是异步的操作，如果出现异常时，消费者会继续处理其他预取消息，但是不会ack（批量成功时才会ack），因此，其他的消息处于unack的状态，其他的消费者会重新获取该消息，消息会出现重复消费的情况。</li>
+</ol>
+<h2 id="Message-Consuming-callback"><a href="#Message-Consuming-callback" class="headerlink" title="Message Consuming callback"></a>Message Consuming callback</h2><p>异步消费是通过回调实现的，消息的消费逻辑在回调方法onMessage()中实现，springboot AMQP提供了两个回调接口，MessageListener、ChannelAwareMessageListener，究竟用哪个取决于你是否需要获取channel信息，比如手动ack时必须要有channel才可以。</p>
+<h2 id="MessageListenerAdapter"><a href="#MessageListenerAdapter" class="headerlink" title="MessageListenerAdapter"></a>MessageListenerAdapter</h2><p>接口回调已经可以实现消息的消费了，这还不够灵活，如果业务需要动态的指定queue或tag对应哪个methodName时，可以继承MessageListenerAdapter。它包含了下面的构造器，使用该构造器时，与前面提到的接口回调本质上是一样的。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">MessageListenerAdapter</span><span class="params">(Object delegate)</span> </span>&#123;    </span><br><span class="line">    <span class="keyword">this</span>.queueOrTagToMethodName = <span class="keyword">new</span> HashMap();    </span><br><span class="line">    <span class="keyword">this</span>.defaultListenerMethod = <span class="string">"handleMessage"</span>;</span><br><span class="line">    <span class="keyword">this</span>.doSetDelegate(delegate);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>delegate（代理）即自定义的消费者bean，它必须是ChannelAwareMessageListener或MessageListener的实例，否则，它不会生效。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">Object delegate = <span class="keyword">this</span>.getDelegate();</span><br><span class="line"><span class="keyword">if</span> (delegate != <span class="keyword">this</span>) &#123;    </span><br><span class="line">	<span class="keyword">if</span> (delegate <span class="keyword">instanceof</span> ChannelAwareMessageListener) &#123;        </span><br><span class="line">		<span class="keyword">if</span> (channel != <span class="keyword">null</span>) &#123;            	 												 			((ChannelAwareMessageListener)delegate).onMessage(message, channel);                     <span class="keyword">return</span>;        </span><br><span class="line">		&#125;       </span><br><span class="line">        <span class="keyword">if</span> (!(delegate <span class="keyword">instanceof</span> MessageListener)) &#123;           </span><br><span class="line">        		<span class="keyword">throw</span> <span class="keyword">new</span> AmqpIllegalStateException(<span class="string">"MessageListenerAdapter cannot handle a ChannelAwareMessageListener delegate if it hasn't been invoked with a Channel itself"</span>);        </span><br><span class="line">        &#125;    </span><br><span class="line">     &#125;    </span><br><span class="line">     <span class="keyword">if</span> (delegate <span class="keyword">instanceof</span> MessageListener) &#123;        	  					 							((MessageListener)delegate).onMessage(message);        </span><br><span class="line">     			<span class="keyword">return</span>;    </span><br><span class="line">     &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>动态的指定消息处理method由下面两个接口实现。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">public void setDefaultListenerMethod(String defaultListenerMethod) &#123;</span><br><span class="line">    this.defaultListenerMethod = defaultListenerMethod;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">public void setQueueOrTagToMethodName(Map&lt;String, String&gt; queueOrTagToMethodName) &#123;</span><br><span class="line">    this.queueOrTagToMethodName.putAll(queueOrTagToMethodName);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>它们在getListenerMethodName中被调用，如果你没有定义queueOrTagToMethodName，那么将会调用你设置的defaultListenerMethod，如果你都没有设置，那么默认值是“handleMessage”。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">protected String getListenerMethodName(Message originalMessage, Object extractedMessage) throws Exception &#123;    </span><br><span class="line">	if (this.queueOrTagToMethodName.size() &gt; 0) &#123;        </span><br><span class="line">		MessageProperties props = originalMessage.getMessageProperties();        </span><br><span class="line">		String methodName = (String)this.queueOrTagToMethodName.get(props.getConsumerQueue());        </span><br><span class="line">		if (methodName == null) &#123;            </span><br><span class="line">			methodName = (String)this.queueOrTagToMethodName.get(props.getConsumerTag());        &#125;        </span><br><span class="line">		if (methodName != null) &#123;            </span><br><span class="line">			return methodName;       </span><br><span class="line">        &#125;    </span><br><span class="line">      &#125;    </span><br><span class="line">     </span><br><span class="line">     return this.getDefaultListenerMethod();</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="容器完成了回调"><a href="#容器完成了回调" class="headerlink" title="容器完成了回调"></a>容器完成了回调</h2><p>前面介绍了如何实现异步消费的回调接口，而真正完成回调的是容器（container），容器是有生命周期的，如启动、运行、停止，容器本质上就是桥接AMQP queue和MessageListener的实例。因此，如果想实现消费者的功能，必须为容器配置connectionFactory、队列、MessageLisener, 即告知容器：如何连接MQ服务器、成功连接后哪个队列的消息应该交给哪个消费者。</p>
+<p>在springboot 2.0之前，只有一种容器：SimpleMessageListenerContainer。在springboot2.0以后，新增了一种容器：DirectMessageListenerContainer。二者的区别就是消费者的线程与RabbitMQ客户端线程是否共用，对于SimpleMessageListenerContainer，每一个消费者配置一个线程，如果为容器配置了多个队列，可能会使用同一个线程处理多个队列（消费者数量&lt;队列数）。并发性能取决于你设置的消费者的数conCurrentConsumer，它等于消费者线程数。</p>
+<p>一个消息的后半生是这样的：spring-amqp负责将消息从MQ服务器传递给消费者，springboot-amqp提供了默认的容器，用来从MQ服务器接收消息，我们提供的消费者完成onMessage()的消息处理逻辑，并将它注册到容器上。</p>
+<p>当消息从RabbitMQ客户端传递过来时，客户端线程通过队列将消息传递给消费线程（消息处理线程）。这是由于早期MQ客户端不支持并发传递消息，一个队列只会有一个线程传递消息，更不可能让它完成消息的处理，这个机制的设置当然是低效的，会增加线程之间切换的开销。</p>
+<p>在新版本后，MQ客户端已经支持并发了，完全可以使用MQ客户端的线程完成消息的接收、处理工作，在DirectMessageListenerContainer中，不再区分客户端线程和消费线程，并发的控制由参数consumersPerQueue控制，不再使用conCurrentConsumer、maxConCurrentConsumer、txSize（事务大小，一次事务中传递txSize条消息，用来减少ack的次数，这个参数&gt;1且消息消费出现异常时，会导致同一个事务中后续的消息重复消费）。DirectMessageListenerContainer中提供了messagesPerAck，但是它不是事务，每一条消息都有一个独立的事务用来传递和确认，出现异常时，后续的消息会一直处于unack的状态，所以，不会重复消费。</p>
+<h2 id="自定义容器"><a href="#自定义容器" class="headerlink" title="自定义容器"></a>自定义容器</h2><p>前面介绍了两种容器，而且springboot-amqp会提供默认地容器，如果想个性化的设置或有需要设置多种容器时，就需要考虑自定义容器了，在实际项目中，建议使用自定义容器。</p>
+<p>现在以SimpleMessageListenerContainer为例介绍下容器的使用方式。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Configuration</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ExampleAmqpConfiguration</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Bean</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> SimpleMessageListenerContainer <span class="title">messageListenerContainer</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        SimpleMessageListenerContainer container = <span class="keyword">new</span> SimpleMessageListenerContainer();</span><br><span class="line">        container.setConnectionFactory(rabbitConnectionFactory());</span><br><span class="line">        container.setQueueName(<span class="string">"some.queue"</span>);</span><br><span class="line">        container.setMessageListener(exampleListener());</span><br><span class="line">        <span class="keyword">return</span> container;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Bean</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> ConnectionFactory <span class="title">rabbitConnectionFactory</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        CachingConnectionFactory connectionFactory =</span><br><span class="line">            <span class="keyword">new</span> CachingConnectionFactory(<span class="string">"localhost"</span>);</span><br><span class="line">        connectionFactory.setUsername(<span class="string">"guest"</span>);</span><br><span class="line">        connectionFactory.setPassword(<span class="string">"guest"</span>);</span><br><span class="line">        <span class="keyword">return</span> connectionFactory;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Bean</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> MessageListener <span class="title">exampleListener</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> MessageListener() &#123;</span><br><span class="line">            <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">onMessage</span><span class="params">(Message message)</span> </span>&#123;</span><br><span class="line">                System.out.println(<span class="string">"received: "</span> + message);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>还有一种方式是使用@RabbitListener注解+Java Config。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@RabbitListener</span>(queues = <span class="string">"example.queue"</span>, containerFactory = <span class="string">"exampleContainer"</span>)</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">onMessage</span><span class="params">(Message message, Channel channel)</span> <span class="keyword">throws</span> Exception </span>&#123;&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="容器工厂"><a href="#容器工厂" class="headerlink" title="容器工厂"></a>容器工厂</h2><p>容器工厂专门用来配合@RabbitListener使用，前面提到，springboot为@RabbitListener提供了默认的容器，但为了个性化的设置，建议自定义容器工厂，然后在@RabbitListener中设置”containerFactory“属性。容器和容器工厂的对应如下：</p>
+<ol>
+<li>SimpleMessageListenerContainer   对应   SimpleRabbitListenerContainerFactory</li>
+<li>DirectMessageListenerContainer    对应    DirectRabbitListenerContainerFactory</li>
+</ol>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Configuration</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">AppConfig</span> </span>&#123;</span><br><span class="line">	<span class="meta">@Bean</span>（name=<span class="string">"myContainerFactory"</span>)</span><br><span class="line">	<span class="function"><span class="keyword">public</span> SimpleRabbitListenerContainerFactory <span class="title">rabbitListenerContainerFactory</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    	SimpleRabbitListenerContainerFactory factory = <span class="keyword">new</span> 				       					SimpleRabbitListenerContainerFactory();</span><br><span class="line">    	factory.setConnectionFactory(connectionFactory());</span><br><span class="line">    	factory.setConcurrentConsumers(<span class="number">3</span>);</span><br><span class="line">    	factory.setMaxConcurrentConsumers(<span class="number">10</span>);</span><br><span class="line">    	<span class="keyword">return</span> factory;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@RabbitListener</span>(queues = ”myqueue“, containerFactory = <span class="string">"myContainerFactory"</span>)</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">onMessage</span><span class="params">(Message message, Channel channel)</span> <span class="keyword">throws</span> Exception </span>&#123;&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="容器属性"><a href="#容器属性" class="headerlink" title="容器属性"></a>容器属性</h2><p>前文涉及的conCurrentConsumer、connectionFactory都是容器的属性，还有其他常用的属性：</p>
+<p><a href="https://docs.spring.io/spring-amqp/docs/2.0.3.RELEASE/reference/html/_reference.html#containerAttributes" target="_blank" rel="noopener">Springboot2.0.3.RELEASE容器属性介绍</a></p>
+<h3 id="channelTransacted"><a href="#channelTransacted" class="headerlink" title="channelTransacted"></a>channelTransacted</h3><p>是否在事务中ack（确认）所有消息。为true时表示需要确认事务中的所有消息。</p>
+<h3 id="transactionManager"><a href="#transactionManager" class="headerlink" title="transactionManager"></a>transactionManager</h3><p>提供给Listener的外部事务管理器，是channelTransacted的补充，如果channel是事务的，它的事务会与外部事务进行同步。</p>
+<h3 id="acknowledgeMode"><a href="#acknowledgeMode" class="headerlink" title="acknowledgeMode"></a>acknowledgeMode</h3><ul>
+<li>NONE         配合channelTransacted=false使用，不发送ACK，MQ服务器认为所有的消息都会被确认，所以                        在RabbitMQ中称为自动ACK，但在springboot中，称为NONE ACK，视角不同导致的称谓不同。</li>
+<li>MANUAL   消费者必须手动确认所有的消息，包括异常情况</li>
+<li>AUTO         容器自动确认消息，除非Listener抛出容器无法自动处理的异常。该模式也是channelTransacted为true时的默认模式。追求并发时可以配合使用。</li>
+</ul>
+<h3 id="prefetchCount"><a href="#prefetchCount" class="headerlink" title="prefetchCount"></a>prefetchCount</h3><p>每个消费者能够持有的未ack的消息数，该值越大消息传输给消费者的速度越快。该参数越大，消息的顺序处理性越差。值得注意的是：在AcknowledgeMode.NONE模式下，该参数的设置是无效的，这是由于该模式下根本不存在ack。</p>
+<h3 id="txSize"><a href="#txSize" class="headerlink" title="txSize"></a>txSize</h3><p>适用于SimpleMessageListenerContainer，该参数仅在AcknowledgeMode.AUTO模式下生效，容器在发送一次ack之前批量处理txSize条消息，这一批消息处于同一个事务中，会一直等待它们到超时时间，如果prefetchCount小于txSize，会自动将prefetchCount设置的与txSize相等。只能用于channelTransacted为true的场景下。</p>
+<h3 id="messagePerAck"><a href="#messagePerAck" class="headerlink" title="messagePerAck"></a>messagePerAck</h3><p>适用于DirectMessageListenerContainer，容器在两次ack之间处理的消息数目，目的是减少向MQ服务器发送ack的次数，代价就是在出现异常时，增大重传消息的可能性，往往用在高并发场景下。在出现异常时（比如拒绝了一批消息中的某一条），则其他消息不管有没有消费完都会被ack，异常的消息被拒绝。所以它不能用在channelTransacted为true的场景。</p>
+<h3 id="errorHandler"><a href="#errorHandler" class="headerlink" title="errorHandler"></a>errorHandler</h3><p>自定义未捕获的异常的处理机制，默认使用ConditionalRejectingErrorHandler</p>
+<h3 id="RabbitListener"><a href="#RabbitListener" class="headerlink" title="@RabbitListener"></a>@RabbitListener</h3><p>异步接收消息最简单的方式是通过注解实现，前面的@RabbitListener即是，底层是MessagingMessageListenerAdapter实现的，使用注解，不需要指定methodName，因为@RabbitListener已经注明了该方法用来接收消息。在一个类中，可以定义多个不同的Listener，如下：</p>
+<p>processOrder中，使用@QueueBinding声明了队列、routingkey、exchange以及他们的绑定关系</p>
+<p>processInvoice中，绑定、声明了一个匿名队列，也可以声明多个@QueueBinding</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@RabbitListener</span>(bindings = &#123;<span class="meta">@QueueBinding</span>(value = <span class="meta">@Queue</span>(value = <span class="string">"myqueue"</span>,         </span><br><span class="line">                                                         durable = <span class="string">"true"</span>,         </span><br><span class="line">                                                         autoDelete = <span class="string">"false"</span>),         </span><br><span class="line">                                          exchange = <span class="meta">@Exchange</span>(value = <span class="string">"ss"</span>)),        </span><br><span class="line">                            <span class="meta">@QueueBinding</span>(value = <span class="meta">@Queue</span>(value = <span class="string">"myqueue2"</span>), </span><br><span class="line">                                          exchange = <span class="meta">@Exchange</span>(value = <span class="string">"ss1"</span>))&#125;)</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">rcv</span><span class="params">(Message message, Channel channel)</span> </span>&#123;&#125;</span><br></pre></td></tr></table></figure>
+
+<p>handleWithSimpleDeclare中，没有声明exchange，routingkey，使用默认地exchange，routingkey与队列名称相同，是direct模式。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Component</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">MyService</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">  <span class="meta">@RabbitListener</span>(bindings = <span class="meta">@QueueBinding</span>(</span><br><span class="line">        value = <span class="meta">@Queue</span>(value = <span class="string">"myQueue"</span>, durable = <span class="string">"true"</span>),</span><br><span class="line">        exchange = <span class="meta">@Exchange</span>(value = <span class="string">"auto.exch"</span>, ignoreDeclarationExceptions = <span class="string">"true"</span>),</span><br><span class="line">        key = <span class="string">"orderRoutingKey"</span>)</span><br><span class="line">  )</span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">processOrder</span><span class="params">(Order order)</span> </span>&#123;</span><br><span class="line">    ...</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="meta">@RabbitListener</span>(bindings = <span class="meta">@QueueBinding</span>(</span><br><span class="line">        value = <span class="meta">@Queue</span>,</span><br><span class="line">        exchange = <span class="meta">@Exchange</span>(value = <span class="string">"auto.exch"</span>),</span><br><span class="line">        key = <span class="string">"invoiceRoutingKey"</span>)</span><br><span class="line">  )</span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">processInvoice</span><span class="params">(Invoice invoice)</span> </span>&#123;</span><br><span class="line">    ...</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="meta">@RabbitListener</span>(queuesToDeclare = <span class="meta">@Queue</span>(name = <span class="string">"$&#123;my.queue&#125;"</span>, durable = <span class="string">"true"</span>))</span><br><span class="line">  <span class="function"><span class="keyword">public</span> String <span class="title">handleWithSimpleDeclare</span><span class="params">(String data)</span> </span>&#123;</span><br><span class="line">      ...</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在多个方法使用同种@RabbitListener时，可以自定义元注解（常用于广播fanout模式）,比如下面的例子，就使用了一个自动删除（默认地，如果不想自动删除，需要设置auto-delete为false）、匿名、广播模式的队列。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Target</span>(&#123;ElementType.TYPE, ElementType.METHOD, ElementType.ANNOTATION_TYPE&#125;)</span><br><span class="line"><span class="meta">@Retention</span>(RetentionPolicy.RUNTIME)</span><br><span class="line"><span class="meta">@RabbitListener</span>(bindings = <span class="meta">@QueueBinding</span>(</span><br><span class="line">        value = <span class="meta">@Queue</span>,</span><br><span class="line">        exchange = <span class="meta">@Exchange</span>(value = <span class="string">"metaFanout"</span>, type = ExchangeTypes.FANOUT)))</span><br><span class="line"><span class="keyword">public</span> <span class="meta">@interface</span> MyAnonFanoutListener &#123;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">// 使用元注解</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">MetaListener</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@MyAnonFanoutListener</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">handle1</span><span class="params">(String foo)</span> </span>&#123;</span><br><span class="line">        ...</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@MyAnonFanoutListener</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">handle2</span><span class="params">(String foo)</span> </span>&#123;</span><br><span class="line">        ...</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h1 id="RabbitListener异常处理"><a href="#RabbitListener异常处理" class="headerlink" title="@RabbitListener异常处理"></a>@RabbitListener异常处理</h1><p>Springboot2.0版之后，@RabbitListener注解新增了errorHandler和returnException属性，默认是无配置的。自定义errorHandler，需要实现RabbitListenerErrorHander接口， 并将其配置在@RabbitListener上。第二个参数messaging.Message是Message Converter产生的，ListenerExecutionFailedException是Listener抛出的。可以在自定义的handleError中处理异常，或抛出其他异常至容器，默认地，如果没有自定义errorHandler，异常将会抛至容器中。由容器的errorHandler处理，见后文。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@FunctionalInterface</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">RabbitListenerErrorHandler</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="function">Object <span class="title">handleError</span><span class="params">(Message amqpMessage, org.springframework.messaging.Message&lt;?&gt;                     message,ListenerExecutionFailedException exception)</span> <span class="keyword">throws</span> Exception</span>;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>returnException属性为“true”时，表示异常需要通知到生产者，一般地，不需要设置该属性，毕竟引入MQ的目的是解耦。</p>
+<h2 id="容器的errorHandler"><a href="#容器的errorHandler" class="headerlink" title="容器的errorHandler"></a>容器的errorHandler</h2><p>前面提到，没有自定义errorHandler时，异常会抛至容器默认异常处理器ConditionalRejectingErrorHandler，包含两个构造器，一个无参，一个含参，通过含参构造器可以自定义异常处理策略。若使用的无参构造器，则默认使用内部类DefaultExceptionStrategy中定义的异常处理策略。</p>
+<p>ConditionalRejectingErrorHandler源码如下，11行是处理异常的接口，在13行中，异常如果不是AmqpRejectAndDontRequeueException而且是致命异常时，会抛出AmqpRejectAndDontRequeueException，致命异常的判断在37行，首先判断异常产生的原因：</p>
+<p>MessagingException位于spring-messiging包下的，是异常MessageConversionException、MethodArgumentResolutionException、MessageDeliveryException、MessageHandlingException、DestinationResolutionException、MethodArgumentNotValidException、MethodArgumentTypeMismatchException、MissingSessionUserException的父类。</p>
+<p>ListenerExecutionFailedException是所有异常被抛出时的最上层栈信息，所有异常都以该形式抛出。</p>
+<p>39~42行是一个for循环，遍历异常产生的栈信息一层层解析异常产生的原因，一旦有MessageConversionException、MethodArgumentResolutionException就跳出循环，处理该异常，如果遍历完整个循环都没有出现，则处理最后一个异常（42行cause = cause.getCause()）。<strong>因此，如果有多个异常均需要处理时，建议重写isFatal方法</strong>。</p>
+<p>59-67行判断cause是否致命，有六种：</p>
+<ul>
+<li>Spring AMQP的MessageConversionException异常</li>
+<li>spring-messaging的MessageConversionException异常</li>
+<li>spring-messaging的MethodArgumentResolutionException异常</li>
+<li>NoSuchMethodException异常</li>
+<li>ClassCastException异常</li>
+<li>自定义的异常isUserCauseFatal</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> org.springframework.amqp.rabbit.listener;</span><br><span class="line"></span><br><span class="line"><span class="comment">// omit the package import for brevity</span></span><br><span class="line"></span><br><span class="line"><span class="number">1</span> <span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ConditionalRejectingErrorHandler</span> <span class="keyword">implements</span> <span class="title">ErrorHandler</span> </span>&#123;    </span><br><span class="line"><span class="number">2</span>    <span class="keyword">protected</span> <span class="keyword">final</span> Log logger = LogFactory.getLog(<span class="keyword">this</span>.getClass());    </span><br><span class="line"><span class="number">3</span>    <span class="keyword">private</span> <span class="keyword">final</span> FatalExceptionStrategy exceptionStrategy;    </span><br><span class="line"><span class="number">4</span>    <span class="function"><span class="keyword">public</span> <span class="title">ConditionalRejectingErrorHandler</span><span class="params">()</span> </span>&#123;        </span><br><span class="line"><span class="number">5</span>        <span class="keyword">this</span>.exceptionStrategy = <span class="keyword">new</span> </span><br><span class="line"><span class="number">6</span>            ConditionalRejectingErrorHandler.DefaultExceptionStrategy();    </span><br><span class="line"><span class="number">7</span>    &#125;    </span><br><span class="line"><span class="number">8</span>    <span class="function"><span class="keyword">public</span> <span class="title">ConditionalRejectingErrorHandler</span><span class="params">(FatalExceptionStrategy exceptionStrategy)</span> </span>&#123; <span class="number">9</span>       		<span class="keyword">this</span>.exceptionStrategy = exceptionStrategy;                               <span class="number">10</span>          &#125;    </span><br><span class="line"><span class="number">11</span>    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">handleError</span><span class="params">(Throwable t)</span> </span>&#123;        </span><br><span class="line"><span class="number">12</span>        <span class="keyword">this</span>.log(t);        </span><br><span class="line"><span class="number">13</span>        <span class="keyword">if</span> (!<span class="keyword">this</span>.causeChainContainsARADRE(t) &amp;&amp; <span class="keyword">this</span>.exceptionStrategy.isFatal(t)) &#123;   <span class="number">14</span>              <span class="keyword">throw</span> <span class="keyword">new</span> AmqpRejectAndDontRequeueException(<span class="string">"Error Handler converted     15                       exception to fatal"</span>, t);        </span><br><span class="line"><span class="number">16</span>        &#125;    </span><br><span class="line"><span class="number">17</span>    &#125;    </span><br><span class="line"><span class="number">18</span>    <span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">log</span><span class="params">(Throwable t)</span> </span>&#123;        </span><br><span class="line"><span class="number">19</span>        <span class="keyword">if</span> (<span class="keyword">this</span>.logger.isWarnEnabled()) &#123;            </span><br><span class="line"><span class="number">20</span>            <span class="keyword">this</span>.logger.warn(<span class="string">"Execution of Rabbit message listener failed."</span>, t);       </span><br><span class="line"><span class="number">21</span>        &#125;    </span><br><span class="line"><span class="number">22</span>    &#125;    </span><br><span class="line"><span class="number">23</span>    <span class="function"><span class="keyword">protected</span> <span class="keyword">boolean</span> <span class="title">causeChainContainsARADRE</span><span class="params">(Throwable t)</span> </span>&#123;        </span><br><span class="line"><span class="number">24</span>        <span class="keyword">for</span>(Throwable cause = t.getCause(); cause != <span class="keyword">null</span>; cause = cause.getCause()) &#123; <span class="number">25</span>               <span class="keyword">if</span> (cause <span class="keyword">instanceof</span> AmqpRejectAndDontRequeueException) &#123;               </span><br><span class="line"><span class="number">26</span>                	<span class="keyword">return</span> <span class="keyword">true</span>;            </span><br><span class="line"><span class="number">27</span>             &#125;        </span><br><span class="line"><span class="number">28</span>        &#125;        </span><br><span class="line"><span class="number">29</span>        <span class="keyword">return</span> <span class="keyword">false</span>;    </span><br><span class="line"><span class="number">30</span>    &#125;    </span><br><span class="line"><span class="number">31</span>    </span><br><span class="line"><span class="number">32</span>    <span class="keyword">public</span> <span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">DefaultExceptionStrategy</span> <span class="keyword">implements</span> <span class="title">FatalExceptionStrategy</span> </span>&#123;   <span class="number">33</span>     </span><br><span class="line"><span class="number">34</span>        <span class="keyword">protected</span> <span class="keyword">final</span> Log logger = LogFactory.getLog(<span class="keyword">this</span>.getClass());        </span><br><span class="line"><span class="number">35</span>        <span class="function"><span class="keyword">public</span> <span class="title">DefaultExceptionStrategy</span><span class="params">()</span> </span>&#123;        </span><br><span class="line"><span class="number">36</span>        &#125;        </span><br><span class="line"><span class="number">37</span>        <span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">isFatal</span><span class="params">(Throwable t)</span> </span>&#123;            </span><br><span class="line"><span class="number">38</span>            Throwable cause;            </span><br><span class="line"><span class="number">39</span>            <span class="keyword">for</span>(cause = t.getCause(); cause <span class="keyword">instanceof</span> MessagingException </span><br><span class="line"><span class="number">40</span>                &amp;&amp; !(cause <span class="keyword">instanceof</span> MessageConversionException) </span><br><span class="line"><span class="number">41</span>                &amp;&amp; !(cause <span class="keyword">instanceof</span> MethodArgumentResolutionException); </span><br><span class="line"><span class="number">42</span>                cause = cause.getCause()) &#123;                </span><br><span class="line"><span class="number">43</span>                ;            </span><br><span class="line"><span class="number">44</span>            &#125;            </span><br><span class="line"><span class="number">45</span>            <span class="keyword">if</span> (t <span class="keyword">instanceof</span> ListenerExecutionFailedException </span><br><span class="line"><span class="number">46</span>                &amp;&amp; <span class="keyword">this</span>.isCauseFatal(cause)) &#123;                </span><br><span class="line"><span class="number">47</span>                <span class="keyword">if</span> (<span class="keyword">this</span>.logger.isWarnEnabled()) &#123;                    </span><br><span class="line"><span class="number">48</span>                    <span class="keyword">this</span>.logger.warn(<span class="string">"Fatal message conversion error; message rejected; 49                      it will be dropped or routed to a dead letter exchange, if so     50                        configured: "</span> + ((ListenerExecutionFailedException)t)</span><br><span class="line"><span class="number">51</span>                                     .getFailedMessage());                </span><br><span class="line"><span class="number">52</span>                &#125;                </span><br><span class="line"><span class="number">53</span>                <span class="keyword">return</span> <span class="keyword">true</span>;            </span><br><span class="line"><span class="number">54</span>            &#125; <span class="keyword">else</span> &#123;                </span><br><span class="line"><span class="number">55</span>                <span class="keyword">return</span> <span class="keyword">false</span>;            </span><br><span class="line"><span class="number">56</span>            &#125;        </span><br><span class="line"><span class="number">57</span>        &#125;        </span><br><span class="line"><span class="number">58</span>                                                                                     </span><br><span class="line"><span class="number">59</span>		<span class="function"><span class="keyword">private</span> <span class="keyword">boolean</span> <span class="title">isCauseFatal</span><span class="params">(Throwable cause)</span> </span>&#123;            </span><br><span class="line"><span class="number">60</span>            <span class="keyword">return</span> cause <span class="keyword">instanceof</span> </span><br><span class="line"><span class="number">61</span>                org.springframework.amqp.support.converter.MessageConversionException </span><br><span class="line"><span class="number">62</span>                || cause <span class="keyword">instanceof</span> MessageConversionException </span><br><span class="line"><span class="number">63</span>                || cause <span class="keyword">instanceof</span> MethodArgumentResolutionException </span><br><span class="line"><span class="number">64</span>                || cause <span class="keyword">instanceof</span> NoSuchMethodException </span><br><span class="line"><span class="number">65</span>                || cause <span class="keyword">instanceof</span> ClassCastException </span><br><span class="line"><span class="number">66</span>                || <span class="keyword">this</span>.isUserCauseFatal(cause);        </span><br><span class="line"><span class="number">67</span>        &#125;        </span><br><span class="line"><span class="number">68</span>        </span><br><span class="line"><span class="number">69</span>      <span class="function"><span class="keyword">protected</span> <span class="keyword">boolean</span> <span class="title">isUserCauseFatal</span><span class="params">(Throwable cause)</span> </span>&#123;            </span><br><span class="line"><span class="number">70</span>            <span class="keyword">return</span> <span class="keyword">false</span>;        </span><br><span class="line"><span class="number">71</span>      &#125;    </span><br><span class="line"><span class="number">72</span>   &#125;</span><br><span class="line"><span class="number">73</span> &#125;</span><br></pre></td></tr></table></figure>
+
+<p>当然，也可以选择完全自定义异常处理。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">listenerContainerFactory.setErrorHandler(<span class="keyword">new</span> ErrorHandler() &#123;    </span><br><span class="line">    <span class="meta">@Override</span>    </span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">handleError</span><span class="params">(Throwable t)</span> </span>&#123;            </span><br><span class="line">        <span class="comment">// do something handle error</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+
+<h2 id="补充说明"><a href="#补充说明" class="headerlink" title="补充说明"></a>补充说明</h2><p>对于消息的异常处理springboot2.0.3还不够完善。比如使用的@RabbitListener、AcknowledgeMent.MANUAL发送一条空的消息，这条消息无法到达自定义的onMessage()方法，提前抛出了异常，若尝试通过RabbitListenerErrorHandler处理异常，并按照下面的方式自定义了一个errorHandler</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Bean</span>(name = <span class="string">"myErrorHandler"</span>)</span><br><span class="line"><span class="function"><span class="keyword">public</span> RabbitListenerErrorHandler <span class="title">rabbitListenerErrorHandler</span><span class="params">()</span> </span>&#123;    </span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> RabbitListenerErrorHandler() &#123;       </span><br><span class="line">        <span class="meta">@Override</span>        </span><br><span class="line">        <span class="function"><span class="keyword">public</span> Object <span class="title">handleError</span><span class="params">(Message message, </span></span></span><br><span class="line"><span class="function"><span class="params">                                  org.springframework.messaging.Message&lt;?&gt; message1, </span></span></span><br><span class="line"><span class="function"><span class="params">                                  ListenerExecutionFailedException e)</span> <span class="keyword">throws</span> Exception </span>&#123;            <span class="comment">// 如果消息是空的，这条消息不再归队            </span></span><br><span class="line">            <span class="keyword">if</span> (message.getBody().length == <span class="number">0</span>) &#123;                </span><br><span class="line">                Channel channel = message1.getHeaders().get(AmqpHeaders.CHANNEL, </span><br><span class="line">                                                            Channel.class);</span><br><span class="line">                logger.error(<span class="string">"rcv error"</span>);</span><br><span class="line">                Channel channel1 = (Channel)message1.getHeaders().getReplyChannel();</span><br><span class="line">                Channel channel2 = (Channel)message1.getHeaders().getReplyChannel();</span><br><span class="line"></span><br><span class="line">                logger.error(<span class="string">"channel1=&#123;&#125;"</span>, channel);</span><br><span class="line">                logger.error(<span class="string">"channel2=&#123;&#125;"</span>, channel2);</span><br><span class="line">                <span class="keyword">if</span> (channel == <span class="keyword">null</span>) &#123;</span><br><span class="line">                    logger.error（”channel <span class="keyword">null</span>，can not send ack...“）</span><br><span class="line">                    <span class="keyword">throw</span> e;                </span><br><span class="line">                &#125;                </span><br><span class="line">                channel.basicReject(message1.getHeaders().get(AmqpHeaders.DELIVERY_TAG, </span><br><span class="line">                                                              Long.class), <span class="keyword">false</span>);              </span><br><span class="line">                <span class="keyword">throw</span> <span class="keyword">new</span> AmqpRejectAndDontRequeueException(<span class="string">"msg format error"</span>);         </span><br><span class="line">            &#125; </span><br><span class="line">            <span class="keyword">else</span> &#123;                </span><br><span class="line">                <span class="keyword">throw</span> e;            </span><br><span class="line">            &#125;        </span><br><span class="line">        &#125;    </span><br><span class="line">    &#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>发送10条empty的消息，打印了10次：channel null，can not send ack…</p>
+<p>这10条消息一直处于unack的状态，消息并没有被reject，而是一直处于unack的状态,但是该消息是无意义的,不应该再重新入队.</p>
+<p>原因：<br>springboot ListenerContainer负责传递消息给消费者，容器通过反射调用自定义的Listener并处理消息时出现参数错误异常，message转byte异常报错。<br>由于方法参数反射错误，无法调用到onMessage方法，又采用的手动确认的方式，导致没办法通过channel.basicReject拒绝该消息，所以这条消息会一直处于unack的状态。</p>
+<p>解决的方法有四种：<br>1、升级springboot至2.1.6版本，在Listener容器中注册RabbitListenerErrorHandler，该版本中，可以通过org.springframework.messaging.Message获取channel信息。通过channel拒绝该消息。在之前的版本中，获取到的channel都是null(如代码所示，channel、channel1、channel2均为null，说明spring没有将channel信息封装在org.springframework.messaging.Message)，无法给MQ服务器发送ACK。<br>2、修改onMessage()的参数，使用Message类型作为消息的载体，不再使用byte、string等其他类型，定义MessageConverter或使用默认的MessageConverter实现消息格式转换。<br>3、使用springboot的Acknowledge.AUTO模式，该模式下Listener容器会自动发送ACK给MQ服务器</p>
+<p>4、自定义MessageConveter</p>
+<p>最后使用了方法2，springboot升级会带来兼容性的问题，比如数据库驱动、数据库版本等，方法3中交给容器自动确认更适合高并发设置多个消费者同时消费1个队列、添加一些批量拉取消息、批量事务处理的场景，该场景会牺牲消息的有序性、异常时可能会有重复消费的问题。我们现在的业务场景更偏向于保证消息的可靠性，一个队列只会有一个消费者，消费一条拉取一条，消息处理的线程池也是自定义的，这样的方式更灵活稳定。所以最后否定了方法3，选用方案2</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/springboot+RabbitMQ(四)至关重要的MessageConvert/" rel="next" title="springboot+RabbitMQ(五)至关重要的MessageConvert">
+                <i class="fa fa-chevron-left"></i> springboot+RabbitMQ(五)至关重要的MessageConvert
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">shipengyang</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">11</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                
+                  <span class="site-state-item-count">4</span>
+                  <span class="site-state-item-name">分类</span>
+                
+              </div>
+            
+
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#轮询模式消费者"><span class="nav-number">1.</span> <span class="nav-text">轮询模式消费者</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#异步消费者"><span class="nav-number">2.</span> <span class="nav-text">异步消费者</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Message-Consuming-callback"><span class="nav-number">2.1.</span> <span class="nav-text">Message Consuming callback</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#MessageListenerAdapter"><span class="nav-number">2.2.</span> <span class="nav-text">MessageListenerAdapter</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#容器完成了回调"><span class="nav-number">2.3.</span> <span class="nav-text">容器完成了回调</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#自定义容器"><span class="nav-number">2.4.</span> <span class="nav-text">自定义容器</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#容器工厂"><span class="nav-number">2.5.</span> <span class="nav-text">容器工厂</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#容器属性"><span class="nav-number">2.6.</span> <span class="nav-text">容器属性</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#channelTransacted"><span class="nav-number">2.6.1.</span> <span class="nav-text">channelTransacted</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#transactionManager"><span class="nav-number">2.6.2.</span> <span class="nav-text">transactionManager</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#acknowledgeMode"><span class="nav-number">2.6.3.</span> <span class="nav-text">acknowledgeMode</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#prefetchCount"><span class="nav-number">2.6.4.</span> <span class="nav-text">prefetchCount</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#txSize"><span class="nav-number">2.6.5.</span> <span class="nav-text">txSize</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#messagePerAck"><span class="nav-number">2.6.6.</span> <span class="nav-text">messagePerAck</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#errorHandler"><span class="nav-number">2.6.7.</span> <span class="nav-text">errorHandler</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#RabbitListener"><span class="nav-number">2.6.8.</span> <span class="nav-text">@RabbitListener</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#RabbitListener异常处理"><span class="nav-number">3.</span> <span class="nav-text">@RabbitListener异常处理</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#容器的errorHandler"><span class="nav-number">3.1.</span> <span class="nav-text">容器的errorHandler</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#补充说明"><span class="nav-number">3.2.</span> <span class="nav-text">补充说明</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">shipengyang</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

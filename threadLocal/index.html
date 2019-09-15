@@ -87,7 +87,7 @@
 <meta property="og:description" content="强引用、软引用、弱引用、虚引用在了解threadLocal之前，有必要了解JAVA中的四种引用：  强引用：正常new出来对象就是强引用，当内存不够的时候，JVM宁可抛出异常，也不会回收强引用对象。 软引用(SoftReference)：软引用生命周期比强引用低，在内存不够的时候，会进行回收软引用对象。软引用对象经常和引用队列ReferenceQueue一起使用，在软引用所引用的对象被GC回收后，">
 <meta property="og:locale" content="zh-Hans">
 <meta property="og:image" content="https://raw.githubusercontent.com/okspy/image/master/threadlocal/ThreadLocal%E5%BC%95%E7%94%A8.png">
-<meta property="og:updated_time" content="2019-09-14T14:38:16.457Z">
+<meta property="og:updated_time" content="2019-09-15T02:11:53.932Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="threadLocal原理">
 <meta name="twitter:description" content="强引用、软引用、弱引用、虚引用在了解threadLocal之前，有必要了解JAVA中的四种引用：  强引用：正常new出来对象就是强引用，当内存不够的时候，JVM宁可抛出异常，也不会回收强引用对象。 软引用(SoftReference)：软引用生命周期比强引用低，在内存不够的时候，会进行回收软引用对象。软引用对象经常和引用队列ReferenceQueue一起使用，在软引用所引用的对象被GC回收后，">
@@ -323,7 +323,7 @@
       
 
       
-        <h2 id="强引用、软引用、弱引用、虚引用"><a href="#强引用、软引用、弱引用、虚引用" class="headerlink" title="强引用、软引用、弱引用、虚引用"></a>强引用、软引用、弱引用、虚引用</h2><p>在了解threadLocal之前，有必要了解JAVA中的四种引用：</p>
+        <h1 id="强引用、软引用、弱引用、虚引用"><a href="#强引用、软引用、弱引用、虚引用" class="headerlink" title="强引用、软引用、弱引用、虚引用"></a>强引用、软引用、弱引用、虚引用</h1><p>在了解threadLocal之前，有必要了解JAVA中的四种引用：</p>
 <ul>
 <li>强引用：正常new出来对象就是强引用，<strong>当内存不够的时候</strong>，JVM宁可抛出异常，也不会回收强引用对象。</li>
 <li>软引用(<code>SoftReference</code>)：软引用生命周期比强引用低，<strong>在内存不够的时候</strong>，会进行回收软引用对象。软引用对象经常和引用队列<code>ReferenceQueue</code>一起使用，在软引用所引用的对象被GC回收后，会把该引用加入到引用队列中。</li>
@@ -332,12 +332,12 @@
 </ul>
 <p>finallized方法： 当对象变成(GC Roots)不可达时（第一次回收），GC会判断该对象是否覆盖了finalize方法，若未覆盖，则直接将其回收。否则，若对象未执行过finalize方法，将其放入F-Queue队列，由一低优先级线程执行该队列中对象的finalize方法。执行finalize方法完毕后，GC会再次判断该对象是否可达（第二次回收），若不可达，则进行回收，否则，对象“复活”。因此，对于重写了finallized方法的对象，会出现两个垃圾回收周期，这两个周期之间可能相隔了很久（取决于finalized方法执行是否及时），所以可能会出现大部分堆被标记为垃圾却还没有被回收，出现内存溢出的错误。</p>
 <p>使用虚引用，上述情况将引刃而解，当一个虚引用加入到引用队列时，你绝对没有办法得到一个销毁了的对象。因为这时候，对象已经从内存中销毁了。因为虚引用不能被用作让其指向的对象重生，所以其对象会在垃圾回收的第一个周期就将被清理掉。</p>
-<h2 id="ThreadLocal"><a href="#ThreadLocal" class="headerlink" title="ThreadLocal"></a>ThreadLocal</h2><p>通常情况下，线程中对全局变量赋值后，可以被任何一个线程访问并修改的。</p>
+<h1 id="ThreadLocal"><a href="#ThreadLocal" class="headerlink" title="ThreadLocal"></a>ThreadLocal</h1><p>通常情况下，线程中对全局变量赋值后，可以被任何一个线程访问并修改的。</p>
 <p>而创建全局变量<code>ThreadLocal</code>，通过<code>ThreadLocal</code>全局变量传递局部变量，该局部变量只能被当前线程访问，而且可以<strong>在线程的上下文传递</strong>，其他线程则无法访问和修改。</p>
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Test</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> ThreadLocal&lt;String&gt; mystr = <span class="keyword">new</span> ThreadLocal&lt;&gt;();</span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">methodA</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        mystr.set(<span class="string">"test_str_1"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
 <p>实际上通过<code>ThreadLocal</code>设置的值是放入了当前线程的一个<code>ThreadLocalMap</code>实例中，所以只能在本线程中访问，其他线程无法访问。</p>
-<h3 id="1-ThreadLocal的实现原理"><a href="#1-ThreadLocal的实现原理" class="headerlink" title="1 ThreadLocal的实现原理"></a>1 ThreadLocal的实现原理</h3><p><strong>每个Thread维护一个ThreadLocalMap映射表，这个映射表的key是ThreadLocal实例，value是真正需要存储的Object。</strong></p>
+<h2 id="ThreadLocal的实现原理"><a href="#ThreadLocal的实现原理" class="headerlink" title="ThreadLocal的实现原理"></a>ThreadLocal的实现原理</h2><p><strong>每个Thread维护一个ThreadLocalMap映射表，这个映射表的key是ThreadLocal实例，value是真正需要存储的Object。</strong></p>
 <p><em>从set()方法的实现，理解ThreadLocal实现</em></p>
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// jdk1.8 source code </span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">set</span><span class="params">(T value)</span> </span>&#123;</span><br><span class="line">        Thread t = Thread.currentThread();</span><br><span class="line">        ThreadLocalMap map = getMap(t);</span><br><span class="line">        <span class="keyword">if</span> (map != <span class="keyword">null</span>)</span><br><span class="line">            map.set(<span class="keyword">this</span>, value);</span><br><span class="line">        <span class="keyword">else</span></span><br><span class="line">            createMap(t, value);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
@@ -361,7 +361,7 @@
 <p><img src="https://raw.githubusercontent.com/okspy/image/master/threadlocal/ThreadLocal%E5%BC%95%E7%94%A8.png" alt="img"></p>
 <p>与上面的分析一致，Entry的key为弱引用，它的引用链是<code>ThreadLocalRef -&gt; ThreadLocal ---&gt; key</code>，当栈中的<code>ThreadLocalRef</code>与堆中的<code>ThreadLocal</code>断开时，<code>ThreadLocal</code>实例就会被垃圾回收。</p>
 <p>value为强引用，它的引用链是<code>CurrentThreadRef -&gt; CurrentThread -&gt; ThreadLocalMap -&gt; Entry -&gt; value</code>，只要当前线程没有关闭，<code>CurrentThreadRef -&gt; CurrentThread</code>的引用就不会断开，value就不会被垃圾回收。只有当前thread结束以后, <code>CurrentThread</code>就不会存在栈中,强引用断开, CurrentThread, Map, value将全部被GC回收.</p>
-<h3 id="2-是否存在内存泄露？"><a href="#2-是否存在内存泄露？" class="headerlink" title="2 是否存在内存泄露？"></a>2 是否存在内存泄露？</h3><p>上节提到当前线程没有退出，将会一直存在CurrentThread至value的引用链，即便将threadLocal手动设置为null也依然存在CurrentThread至value的引用链。这会给开发者产生一种<strong>内存泄露的错觉</strong>（错觉：value是通过threadLocal设置的，我明明将threadLocal设置为了null，为什么value还会占用内存？），尤其在使用线程池时更容易出现这样的错觉，因为线程池的线程结束后，会放回线程池中不销毁。</p>
+<h2 id="是否存在内存泄露？"><a href="#是否存在内存泄露？" class="headerlink" title="是否存在内存泄露？"></a>是否存在内存泄露？</h2><p>上节提到当前线程没有退出，将会一直存在CurrentThread至value的引用链，即便将threadLocal手动设置为null也依然存在CurrentThread至value的引用链。这会给开发者产生一种<strong>内存泄露的错觉</strong>（错觉：value是通过threadLocal设置的，我明明将threadLocal设置为了null，为什么value还会占用内存？），尤其在使用线程池时更容易出现这样的错觉，因为线程池的线程结束后，会放回线程池中不销毁。</p>
 <p>可以理解为：threadLocal没有内存泄露，泄露的是Entry。</p>
 <p><strong>JDK的优化</strong></p>
 <p>为了减缓这种错觉的产生，Java会在调用threadLocal实例的get、set方法且key为null时，清除Entry。以get方法为例：</p>
@@ -370,7 +370,7 @@
 <p>不仅在调用get方法，在调用set、remove方法时，threadLocal为null时，也会最终调用到<code>expungeStaleEntry()</code>方法 ，清除所有threadLocal为null时entry的强引用，这里不赘述了。</p>
 <p>因此，正确的使用方式是，首先判断是否存在场景：threadLocal置为null？</p>
 <p>如果存在，在调用完set、get后，记得调用remove方法显示的清除Entry的强引用。如果不存在，threadLocal一直在使用，没有被回收的必要，也不care脏读的情况，那更没必要去回收threadLocalMap中的Entry了。</p>
-<h3 id="3-脏读"><a href="#3-脏读" class="headerlink" title="3 脏读"></a>3 脏读</h3><p>示例如下，创建一个大小为8的线程池，向该线程池提交100次任务，因为使用的是线程池，线程不会被销毁，所以假设某一个线程写入了值，然后该线程处于空闲态，然后该线程再次读取时，读取到的是上次该线程运行时设置的值。</p>
+<h2 id="脏读"><a href="#脏读" class="headerlink" title="脏读"></a>脏读</h2><p>示例如下，创建一个大小为8的线程池，向该线程池提交100次任务，因为使用的是线程池，线程不会被销毁，所以假设某一个线程写入了值，然后该线程处于空闲态，然后该线程再次读取时，读取到的是上次该线程运行时设置的值。</p>
 <p>可能下面的例子很明显就看的出问题所在，但是当项目复杂时，在多处调用get，就比较容易出现这种问题。</p>
 <p>不过这种情况也很容易避免，有两种方法：</p>
 <ul>
@@ -379,10 +379,10 @@
 </ul>
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Test</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> ThreadLocal&lt;String&gt; mystr = <span class="keyword">new</span> ThreadLocal&lt;&gt;();</span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">methodA</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    	ExecutorService executor = Executors.newFixedThreadPool(<span class="number">8</span>);</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i=<span class="number">0</span>; i&lt;<span class="number">100</span>; i++) &#123;</span><br><span class="line">            executor.execute(<span class="keyword">new</span> Runnable() &#123;</span><br><span class="line">                <span class="meta">@Override</span></span><br><span class="line">                <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">                    <span class="keyword">if</span> (i % <span class="number">4</span> == <span class="number">0</span>) &#123;</span><br><span class="line">                        String s = mystr.get();</span><br><span class="line">                    &#125;</span><br><span class="line">                	mystr.set(<span class="string">"test"</span>+i);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;);</span><br><span class="line">        &#125;</span><br><span class="line">        </span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<h3 id="4-Hash碰撞"><a href="#4-Hash碰撞" class="headerlink" title="4 Hash碰撞"></a>4 Hash碰撞</h3><p>在某个线程中，每new一个ThreadLocal实例，该线程的<code>ThreadLocalMap</code>中就会新增的一个key，当ThreadLocal实例过多时，自然会出现hash碰撞。</p>
+<h2 id="Hash碰撞"><a href="#Hash碰撞" class="headerlink" title="Hash碰撞"></a>Hash碰撞</h2><p>在某个线程中，每new一个ThreadLocal实例，该线程的<code>ThreadLocalMap</code>中就会新增的一个key，当ThreadLocal实例过多时，自然会出现hash碰撞。</p>
 <p>和<code>HashMap</code>的最大的不同在于，<code>ThreadLocal.ThreadLocalMap</code>结构非常简单，没有next引用，也就是说<code>ThreadLocalMap</code>中解决Hash冲突的方式并非链表/红黑树的方式，而是采用线性探测的方式，所谓线性探测，就是根据初始key的hashcode值确定元素在table数组中的位置，如果发现这个位置上已经有其他key值的元素被占用，则利用固定的算法寻找一定步长的下个位置，依次判断，直至找到能够存放的位置。</p>
 <p>线性探测的方式解决Hash冲突的效率很低，如果有大量不同的ThreadLocal对象放入map中时发送冲突，或者发生二次冲突，则效率很低。所以在开发的过程中，要避免这一点，提高运行效率。</p>
-<h3 id="5-与synchronized的区别"><a href="#5-与synchronized的区别" class="headerlink" title="5 与synchronized的区别"></a>5 与synchronized的区别</h3><ul>
+<h2 id="与synchronized的区别"><a href="#与synchronized的区别" class="headerlink" title="与synchronized的区别"></a>与synchronized的区别</h2><ul>
 <li><code>ThreadLocal</code>用于处理线程内部上下文变量的传递，变量不会被其他线程访问，而<code>synchronized</code>修饰的变量，只要其他线程获取了锁，就能访问、修改</li>
 <li><code>ThreadLocal</code>没有锁的机制，没有锁的开销</li>
 </ul>
@@ -499,7 +499,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">7</span>
+                  <span class="site-state-item-count">11</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -545,7 +545,7 @@
             
 
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#强引用、软引用、弱引用、虚引用"><span class="nav-number">1.</span> <span class="nav-text">强引用、软引用、弱引用、虚引用</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ThreadLocal"><span class="nav-number">2.</span> <span class="nav-text">ThreadLocal</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-ThreadLocal的实现原理"><span class="nav-number">2.1.</span> <span class="nav-text">1 ThreadLocal的实现原理</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-是否存在内存泄露？"><span class="nav-number">2.2.</span> <span class="nav-text">2 是否存在内存泄露？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-脏读"><span class="nav-number">2.3.</span> <span class="nav-text">3 脏读</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-Hash碰撞"><span class="nav-number">2.4.</span> <span class="nav-text">4 Hash碰撞</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-与synchronized的区别"><span class="nav-number">2.5.</span> <span class="nav-text">5 与synchronized的区别</span></a></li></ol></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#强引用、软引用、弱引用、虚引用"><span class="nav-number">1.</span> <span class="nav-text">强引用、软引用、弱引用、虚引用</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#ThreadLocal"><span class="nav-number">2.</span> <span class="nav-text">ThreadLocal</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#ThreadLocal的实现原理"><span class="nav-number">2.1.</span> <span class="nav-text">ThreadLocal的实现原理</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#是否存在内存泄露？"><span class="nav-number">2.2.</span> <span class="nav-text">是否存在内存泄露？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#脏读"><span class="nav-number">2.3.</span> <span class="nav-text">脏读</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Hash碰撞"><span class="nav-number">2.4.</span> <span class="nav-text">Hash碰撞</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#与synchronized的区别"><span class="nav-number">2.5.</span> <span class="nav-text">与synchronized的区别</span></a></li></ol></li></ol></div>
             
 
           </div>
