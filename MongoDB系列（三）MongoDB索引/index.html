@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-Hans">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Hexo, NexT">
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="MongoDB索引索引是特殊的数据结构，它以易于遍历的形式存储部分集合数据集。索引存储特定字段或字段集的值，按字段值排序。 MongoDB的索引几乎与传统的关系型数据库索引一模一样，第二章提到的_id实际上也是一个索引，MongoDB的数据按照_id的顺序存储在内存页与磁盘块上。但是，_id与业务毫无关联，在业务相关的条件查询时，还是需要进行全表扫描才能找到对应页，效率并不高。  为了避免性能瓶颈">
+<meta property="og:type" content="article">
+<meta property="og:title" content="MongoDB系列（三）MongoDB索引">
+<meta property="og:url" content="http://yoursite.com/MongoDB系列（三）MongoDB索引/index.html">
+<meta property="og:site_name" content="okspy">
+<meta property="og:description" content="MongoDB索引索引是特殊的数据结构，它以易于遍历的形式存储部分集合数据集。索引存储特定字段或字段集的值，按字段值排序。 MongoDB的索引几乎与传统的关系型数据库索引一模一样，第二章提到的_id实际上也是一个索引，MongoDB的数据按照_id的顺序存储在内存页与磁盘块上。但是，_id与业务毫无关联，在业务相关的条件查询时，还是需要进行全表扫描才能找到对应页，效率并不高。  为了避免性能瓶颈">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:image" content="c:%5CUsers%5Cadmin%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5C1566960990983.png">
+<meta property="og:updated_time" content="2019-09-15T00:29:59.904Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="MongoDB系列（三）MongoDB索引">
+<meta name="twitter:description" content="MongoDB索引索引是特殊的数据结构，它以易于遍历的形式存储部分集合数据集。索引存储特定字段或字段集的值，按字段值排序。 MongoDB的索引几乎与传统的关系型数据库索引一模一样，第二章提到的_id实际上也是一个索引，MongoDB的数据按照_id的顺序存储在内存页与磁盘块上。但是，_id与业务毫无关联，在业务相关的条件查询时，还是需要进行全表扫描才能找到对应页，效率并不高。  为了避免性能瓶颈">
+<meta name="twitter:image" content="c:%5CUsers%5Cadmin%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5C1566960990983.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/MongoDB系列（三）MongoDB索引/">
+
+
+
+
+
+  <title>MongoDB系列（三）MongoDB索引 | okspy</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">okspy</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/MongoDB系列（三）MongoDB索引/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="shipengyang">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="okspy">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">MongoDB系列（三）MongoDB索引</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-09-15T00:00:00+08:00">
+                2019-09-15
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/数据库/" itemprop="url" rel="index">
+                    <span itemprop="name">数据库</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h1 id="MongoDB索引"><a href="#MongoDB索引" class="headerlink" title="MongoDB索引"></a>MongoDB索引</h1><p>索引是特殊的数据结构，它以易于遍历的形式存储部分集合数据集。索引存储特定字段或字段集的值，按字段值排序。</p>
+<p>MongoDB的索引几乎与传统的关系型数据库索引一模一样，第二章提到的<code>_id</code>实际上也是一个索引，MongoDB的数据按照<code>_id</code>的顺序存储在内存页与磁盘块上。但是，<code>_id</code>与业务毫无关联，在业务相关的条件查询时，还是需要进行全表扫描才能找到对应页，效率并不高。</p>
+<ul>
+<li>为了避免性能瓶颈，可以根据常用的查询建立索引</li>
+<li>索引的值是按照一定的顺序排列的，因此，使用索引键对文档进行排序效率非常高。</li>
+</ul>
+<p>不过，使用索引也是有代价的，不仅会增加磁盘与内存的消耗，对于添加的每一个索引，每次写操作（插入、更新、删除）都会耗费更多时间，这是因为，数据发生变动时，还需要额外的开销更新索引。</p>
+<h2 id="聚簇索引与非聚簇索引"><a href="#聚簇索引与非聚簇索引" class="headerlink" title="聚簇索引与非聚簇索引"></a>聚簇索引与非聚簇索引</h2><p>在介绍索引之前，先了解下聚簇索引与非聚簇索引。<br>磁盘上的数据某一时刻只能有一种排序方式，而聚簇索引的特点是：索引顺序与数据存储顺序一致，所以聚簇索引只能有一个。</p>
+<p>《数据库原理》中对聚簇索引的定义：聚簇索引的叶子节点是数据节点，非聚簇索引的叶子节点仍然是索引节点，只不过有指向对应数据块的指针。</p>
+<p>所以Mysql的InnoDB引擎的主键索引是聚簇索引、MyIsam引擎使用的是非聚簇索引。</p>
+<p>MongoDB不会将<code>_id</code>索引与文档内容放在一起，所以MongoDB的<code>_id</code>索引不是聚簇索引，mogoDB将数据与索引分开存放，通过RecordId间接引用。假设为字段<code>”name“</code>创建了索引，主键<code>id</code>为主键索引，那么该集合就通过索引查找RecordId，再查找数据。</p>
+<p><img src="C:%5CUsers%5Cadmin%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5C1566960990983.png" alt="1566960990983"></p>
+<h2 id="主键索引"><a href="#主键索引" class="headerlink" title="主键索引"></a>主键索引</h2><p>前面提到的<code>_id</code>索引是默认的主键索引，与业务相关联的项不适合用作主键（难以保障全局唯一、非null），建议使用<code>_id</code>作为主键。</p>
+<h2 id="单字段索引"><a href="#单字段索引" class="headerlink" title="单字段索引"></a>单字段索引</h2><p>即对单个filed建立索引，也是常说的“普通索引”；建立索引时可以指定索引数据的order：正序还是倒序。MongoDB 3.0后的版本，使用<code>createIndex</code>、<code>ensureIndex</code>是一样的，均是创建索引的命令。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">db.mycollection.ensureIndex(&#123;<span class="string">"name"</span>:<span class="number">1</span>&#125;) <span class="comment">//对score字段建立索引、1表示正序、-1表示倒序</span></span><br><span class="line">db.mycollection.createIndex(&#123;<span class="string">"name"</span>:<span class="number">1</span>&#125;) <span class="comment">// MongoDB 3.0后的版本，可以使用createIndex</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="复合索引"><a href="#复合索引" class="headerlink" title="复合索引"></a>复合索引</h2><p>两个或两个以上的键建立索引，可以减小检索的范围。复合索引与Mysql一样，也是按照左侧匹配规则，这里不赘述，主要介绍下复合索引与排序共用的情况。</p>
+<p>首先，在集合<code>”myc“</code>上创建一个复合索引：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">db.myc.ensureIndex(&#123;<span class="string">"age"</span>:<span class="number">1</span>,<span class="string">"name"</span>:<span class="number">1</span>&#125;); <span class="comment">// 索引1</span></span><br></pre></td></tr></table></figure>
+
+<p>再创建一个:</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">db.myc.ensureIndex(&#123;<span class="string">"name"</span>:<span class="number">1</span>,<span class="string">"age"</span>:<span class="number">1</span>&#125;); <span class="comment">// 索引2</span></span><br></pre></td></tr></table></figure>
+
+<p>这两个复合索引的唯一区别就是键顺序不同，排序规则都是正序（1表示正序、-1表示倒序）。</p>
+<p>由于存在了多个索引，使用<code>hint</code>命令指明使用哪个索引。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 查询1使用索引1</span></span><br><span class="line">db.myc.find(&#123;<span class="string">"age"</span>:&#123;<span class="string">"$gte"</span>:<span class="number">21</span>, <span class="string">"$lte"</span>:<span class="number">30</span>&#125;&#125;).sort(&#123;<span class="string">"name"</span>:<span class="number">1</span>&#125;).hint(&#123;<span class="string">"age"</span>:<span class="number">1</span>,<span class="string">"name"</span>:<span class="number">1</span>&#125;);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 查询2使用索引2</span></span><br><span class="line">db.myc.find(&#123;<span class="string">"age"</span>:&#123;<span class="string">"$gte"</span>:<span class="number">21</span>, <span class="string">"$lte"</span>:<span class="number">30</span>&#125;&#125;).sort(&#123;<span class="string">"name"</span>:<span class="number">1</span>&#125;).hint(&#123;<span class="string">"name"</span>:<span class="number">1</span>,<span class="string">"age"</span>:<span class="number">1</span>&#125;);</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>对于查询1，先根据索引<code>age</code>查找复合条件的结果集，然后在内存中排序（<code>age</code>索引是有序的，但是排序规则用不到）</li>
+<li>对于查询2，遍历整个索引树，找出所有匹配的文档，不需要排序（<code>name</code>索引本身就是有序的），按正序遍历即可。</li>
+</ul>
+<p>查询1和查询2究竟哪个性能更强，取决于结果集的大小，一般的，结果集越大，在内存中排序耗时越久，超过一定大小（32MB）后，MongoDB会抛出异常，拒绝对如此多的数据排序。一般的：</p>
+<ul>
+<li>结果集只有几条、十几条，使用查询1，排序的开销跟遍历树的开销相比并不大</li>
+<li>结果集有几百条、甚至几千条，使用查询2，排序的开销显得过大。</li>
+<li>结果集有几万条，使用查询1或查询2建议具体比较一下</li>
+</ul>
+<p>结果集的大小可以使用<code>limit</code>关键字人为限制：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">db.myc.find(&#123;<span class="string">"age"</span>:&#123;<span class="string">"$gte"</span>:<span class="number">21</span>, <span class="string">"$lte"</span>:<span class="number">30</span>&#125;&#125;).sort(&#123;<span class="string">"name"</span>:<span class="number">1</span>&#125;).limit(<span class="number">1000</span>).hint(&#123;<span class="string">"name"</span>:<span class="number">1</span>,<span class="string">"age"</span>:<span class="number">1</span>&#125;); \\使用查询<span class="number">2</span>，并限制结果集</span><br></pre></td></tr></table></figure>
+
+<p>最后，具体使用哪种查询，使用<code>explain</code>关键字在shell中比较一下再做选择。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">db.myc.find(&#123;<span class="string">"age"</span>:&#123;<span class="string">"$gte"</span>:<span class="number">21</span>, <span class="string">"$lte"</span>:<span class="number">30</span>&#125;&#125;).sort(&#123;<span class="string">"name"</span>:<span class="number">1</span>&#125;).hint(&#123;<span class="string">"age"</span>:<span class="number">1</span>,<span class="string">"name"</span>:<span class="number">1</span>&#125;).explain()[<span class="string">`millis`</span>]; \\获取查询<span class="number">1</span>耗时</span><br><span class="line"></span><br><span class="line">db.myc.find(&#123;<span class="string">"age"</span>:&#123;<span class="string">"$gte"</span>:<span class="number">21</span>, <span class="string">"$lte"</span>:<span class="number">30</span>&#125;&#125;).sort(&#123;<span class="string">"name"</span>:<span class="number">1</span>&#125;).hint(&#123;<span class="string">"age"</span>:<span class="number">1</span>,<span class="string">"name"</span>:<span class="number">1</span>&#125;).explain()[<span class="string">`millis`</span>]; \\获取查询<span class="number">2</span>耗时</span><br></pre></td></tr></table></figure>
+
+<h2 id="唯一索引"><a href="#唯一索引" class="headerlink" title="唯一索引"></a>唯一索引</h2><p>唯一索引用来确保集合的每一个文档的指定键都有唯一值，允许null值。例如：在集合mycollection中，给”name“键建立唯一索引，试图插入重复name的值时，会抛出异常，也会影响效率。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">db.mycollection.ensureIndex(&#123;<span class="string">"name"</span>:<span class="number">1</span>&#125;, &#123;<span class="string">"unique"</span>:<span class="literal">true</span>&#125;);</span><br></pre></td></tr></table></figure>
+
+<p>使用场景：应对<strong>偶尔</strong>可能会出现重复的键重复问题，而不是在运行时对重复键进行过滤。比如：为避免消息重复消费，可以为”消息id“键创建唯一索引。</p>
+<h3 id="复合唯一索引"><a href="#复合唯一索引" class="headerlink" title="复合唯一索引"></a>复合唯一索引</h3><p>复合的唯一索引，单个键的值可以相同，<strong>但所有键的组合值必须是唯一的</strong>。</p>
+<p>例如，如果有一个{”username”:1, “age”:100}上的唯一索引，下面的插入是合法的，不会报错。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">db.mycollection.insert(&#123;<span class="string">"username"</span>:<span class="string">"bob"</span>&#125;);</span><br><span class="line">db.mycollection.insert(&#123;<span class="string">"username"</span>:<span class="string">"bob"</span>, <span class="string">"age"</span>:<span class="number">23</span>&#125;);</span><br><span class="line">db.mycollection.insert(&#123;<span class="string">"username"</span>:<span class="string">"fred"</span>, <span class="string">"age"</span>:<span class="number">23</span>&#125;);</span><br></pre></td></tr></table></figure>
+
+<h3 id="去除重复"><a href="#去除重复" class="headerlink" title="去除重复"></a>去除重复</h3><p>在已有的集合上创建唯一索引时，可能会失败，因为集合中可能已经存在重复的值了。此时，有三种办法：</p>
+<ul>
+<li><p>找出重复数据，想办法去除</p>
+</li>
+<li><p>直接删除重复的值，创建索引时使用<code>”dropDups“</code>选项，如果遇到重复的值，只会保留第一个值。正是由于这种不确定性（不确定哪条记录被删除），MongoDB 3.0以后移除了该选项。</p>
+</li>
+<li><p>新建一个集合，建立索引，然后把旧集合的数据拷贝至新集合</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">db.mycollection.ensureIndex(&#123;<span class="string">"username"</span>:<span class="string">"bob"</span>&#125;,&#123;<span class="string">"unique"</span>:<span class="literal">true</span>,<span class="string">"dropDups"</span>:<span class="literal">true</span>&#125;)</span><br></pre></td></tr></table></figure>
+
+</li>
+</ul>
+<h2 id="稀疏索引"><a href="#稀疏索引" class="headerlink" title="稀疏索引"></a>稀疏索引</h2><p>唯一索引会把null看做值，假如集合中有以下两个文档，假设对键<code>”age“</code>建立唯一索引，则文档2中的<code>&quot;age&quot;</code>就是<code>null</code></p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">&#123;<span class="string">"name"</span>:<span class="string">"bob"</span>, <span class="string">"age"</span>:<span class="number">23</span>&#125; <span class="comment">// 文档1</span></span><br><span class="line">&#123;<span class="string">"name"</span>:<span class="string">"bob"</span>&#125; <span class="comment">// 文档2</span></span><br></pre></td></tr></table></figure>
+
+<p>现在想新增文档3，是无法添加的，因为文档3中<code>”age“</code>也是<code>null</code>，与文档2冲突了，违反了唯一性。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&#123;<span class="string">"name"</span>:<span class="string">"bob"</span>, <span class="string">"addresss"</span>:<span class="string">"sz"</span>&#125; <span class="comment">// 文档3</span></span><br></pre></td></tr></table></figure>
+
+<p>此时，应该使用稀疏索引（sparse index），就可以插入文档3，同时也能保证文档4无法插入，满足唯一性。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 创建稀疏索引</span></span><br><span class="line">db.ensureIndex(&#123;<span class="string">"age"</span>:<span class="number">1</span>&#125;, &#123;<span class="string">"unique"</span>: <span class="literal">true</span>, <span class="string">"sparse"</span>: <span class="literal">true</span>&#125;);</span><br><span class="line"></span><br><span class="line">&#123;<span class="string">"name"</span>:<span class="string">"dod"</span>, <span class="string">"age"</span>:<span class="number">23</span>&#125; <span class="comment">// 文档4</span></span><br></pre></td></tr></table></figure>
+
+<p>稀疏索引定义如下：如果集合中的文档存在索引键，则必须是唯一的，如果文档不存在索引键，则不要求该文档的唯一性。</p>
+<p><strong>注意事项：</strong></p>
+<p>根据是否使用稀疏索引，查询结果可能有所不同。例如：对于下面的查询，查询1和查询2是完全相同的语句，不同的是，查询1对应未创建稀疏索引的情况，查询2对应创建稀疏索引的情况。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">db.mycollection.find(&#123;<span class="string">"age"</span>:&#123;<span class="string">"$ne"</span>:<span class="number">23</span>&#125;&#125;) <span class="comment">// 查询1，未创建稀疏索引</span></span><br><span class="line">db.mycollection.find(&#123;<span class="string">"age"</span>:&#123;<span class="string">"$ne"</span>:<span class="number">23</span>&#125;&#125;) <span class="comment">// 查询2</span></span><br></pre></td></tr></table></figure>
+
+<p>查询结果如下，查询2没有查询到文档，这是因为<strong>建立了稀疏索引后，查询只根据索引查询，不再全表扫描，因此，会遗漏那些没有索引键的文档。</strong>如果一定要获取与查询1相同的结果，通过<code>hint</code>命令指明不使用索引，执行全表扫描。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 查询1的查询结果</span></span><br><span class="line">&#123;<span class="string">"name"</span>:<span class="string">"bob"</span>&#125;</span><br><span class="line">&#123;<span class="string">"name"</span>:<span class="string">"bob"</span>, <span class="string">"addresss"</span>:<span class="string">"sz"</span>&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 查询2的查询结果</span></span><br><span class="line"><span class="comment">// nothing...</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="TTL索引"><a href="#TTL索引" class="headerlink" title="TTL索引"></a>TTL索引</h2><p>TTL（Time-to-live index）索引指具有生命周期的索引，这种索引会为文档设置一个超时时间，一旦文档存活时间超过该时间就会被删除。这种类型的索引可以用在：消息日志、服务器会话等具有时效性的场景。</p>
+<p>在<code>&quot;createdTime&quot;</code>字段上创建TTL索引：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">db.mycollection.createIndex(&#123;<span class="string">"createdTime"</span>:<span class="number">1</span>&#125;, <span class="string">"expireAfterSecs"</span>: <span class="number">60</span>*<span class="number">60</span>*<span class="number">24</span>)</span><br></pre></td></tr></table></figure>
+
+<p><code>&quot;createdTime&quot;</code>字段必需是日期类型，一般设置为当前时间，</p>
+<p>​        记录被删除的时间点=<code>&quot;createdTime&quot;</code>字段对应的时间点+<code>&quot;expireAfterSecs&quot;</code>对应的单位为秒的时间段</p>
+<p>为了避免活跃的会话被删除，可以在会话上有活动发生时，更新<code>&quot;createdTime&quot;</code>为当前时间。</p>
+<p>一个集合上可以创建多个TTL索引。</p>
+<h2 id="全文索引"><a href="#全文索引" class="headerlink" title="全文索引"></a>全文索引</h2><p>与Mysql一样，MongoDB也支持全文检索。创建全文索引的开销较大，MongoDB本身就很耗内存，在一个操作频繁的集合上创建全文索引更容易导致内存不足，全文本索引的集合写入性能更差、分片时迁移速度更慢，一般的，如果不是特别强烈的业务需要，不建议使用全文索引。</p>
+<p>在<code>&quot;mytext&quot;</code>字段上创建全文索引：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">db.mycollection.ensureIndex(&#123;<span class="string">"mytext"</span>:<span class="string">"text"</span>&#125;)</span><br></pre></td></tr></table></figure>
+
+<p>使用全文索引检索关键字<code>&quot;keyword&quot;</code>：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">db.mycollection.find(&#123;<span class="attr">$text</span>:&#123;<span class="attr">$search</span>:<span class="string">"keyword"</span>&#125;&#125;)</span><br></pre></td></tr></table></figure>
+
+<h2 id="地理空间索引"><a href="#地理空间索引" class="headerlink" title="地理空间索引"></a>地理空间索引</h2><p>MongoDB支持几种类型的索引，最常见的是2dsphere索引（用于球面图）和2d索引（用于平面图）。这里只简单介绍下这两种索引的创建：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">db.mycollection.ensureIndex(&#123;<span class="string">"myloc"</span>:<span class="string">"2dsphere"</span>&#125;)</span><br><span class="line">db.mycollection.ensureIndex(&#123;<span class="string">"myloc"</span>:<span class="string">"2d"</span>&#125;)</span><br></pre></td></tr></table></figure>
+
+<h2 id="优化"><a href="#优化" class="headerlink" title="优化"></a>优化</h2><p>如果数据库中已有大量数据，此时建立索引将会导致大量的IO操作（内存，磁盘读写），耗时较长。MongoDB提供了2种方式：foreground和background。</p>
+<ul>
+<li>foreground即前台操作，它会阻塞用户对数据的读写操作直到index构建完毕，即任何需要获取read、write锁的操作都会阻塞，默认情况下为foreground；</li>
+<li>background即后台模式，不阻塞数据读写操作，独立的后台线程异步构建索引，此时仍然允许对数据的读写操作；<strong>其中background比foreground更加耗时。</strong></li>
+</ul>
+<h3 id="查询优化"><a href="#查询优化" class="headerlink" title="查询优化"></a>查询优化</h3><ul>
+<li><p>对频繁访问的查询，尽量使用覆盖索引，如果一个索引包含（或者说覆盖）所有需要查询的数据，就称为“覆盖索引”，使用覆盖索引时，需要强制不显示objectId字段。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">db.mycollection.createIndex(&#123;<span class="string">"name"</span>, <span class="number">1</span>&#125;)</span><br><span class="line">db.mycollection.find(&#123;<span class="string">"name"</span>:bob, <span class="string">"_id"</span>:<span class="number">0</span>&#125;) <span class="comment">// 0表示不显示该字段</span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p>选用差异性较强的字段作为索引，不要选用类似于性别、国家这种字段作为索引键。</p>
+</li>
+<li><p>需要哪些字段查询哪些字段，尽量不要查询整个文档</p>
+</li>
+<li><p>使用hint强制使用特定的索引</p>
+</li>
+<li><p>使用explain对比分析多种查询方式的性能</p>
+</li>
+</ul>
+<h3 id="写操作优化"><a href="#写操作优化" class="headerlink" title="写操作优化"></a>写操作优化</h3><ul>
+<li>尽量不要创建过多的索引，索引会增加该集合写入、更新、删除的开销，因为要额外维护索引</li>
+<li>合理设置journal相关参数，journal日志实现日志预写功能，开启journal保证了数据持久化，但也会存在一定的性能消耗，合理的设置commitIntercalMs控制journal写入磁盘的频率，该参数过大，影响MongoDB写操作的性能，该参数过小，MongoDB意外宕机期间预写日志未持久化的可能增大。</li>
+</ul>
+<p>## </p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/MongoDB系列（四）MongoDB副本集与分片/" rel="next" title="MongoDB系列（四）MongoDB副本集与分片">
+                <i class="fa fa-chevron-left"></i> MongoDB系列（四）MongoDB副本集与分片
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/MongoDB系列（一）MongoDB简介/" rel="prev" title="MongoDB系列（一）MongoDB简介">
+                MongoDB系列（一）MongoDB简介 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">shipengyang</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">7</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                
+                  <span class="site-state-item-count">4</span>
+                  <span class="site-state-item-name">分类</span>
+                
+              </div>
+            
+
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#MongoDB索引"><span class="nav-number">1.</span> <span class="nav-text">MongoDB索引</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#聚簇索引与非聚簇索引"><span class="nav-number">1.1.</span> <span class="nav-text">聚簇索引与非聚簇索引</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#主键索引"><span class="nav-number">1.2.</span> <span class="nav-text">主键索引</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#单字段索引"><span class="nav-number">1.3.</span> <span class="nav-text">单字段索引</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#复合索引"><span class="nav-number">1.4.</span> <span class="nav-text">复合索引</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#唯一索引"><span class="nav-number">1.5.</span> <span class="nav-text">唯一索引</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#复合唯一索引"><span class="nav-number">1.5.1.</span> <span class="nav-text">复合唯一索引</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#去除重复"><span class="nav-number">1.5.2.</span> <span class="nav-text">去除重复</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#稀疏索引"><span class="nav-number">1.6.</span> <span class="nav-text">稀疏索引</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#TTL索引"><span class="nav-number">1.7.</span> <span class="nav-text">TTL索引</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#全文索引"><span class="nav-number">1.8.</span> <span class="nav-text">全文索引</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#地理空间索引"><span class="nav-number">1.9.</span> <span class="nav-text">地理空间索引</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#优化"><span class="nav-number">1.10.</span> <span class="nav-text">优化</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#查询优化"><span class="nav-number">1.10.1.</span> <span class="nav-text">查询优化</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#写操作优化"><span class="nav-number">1.10.2.</span> <span class="nav-text">写操作优化</span></a></li></ol></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">shipengyang</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

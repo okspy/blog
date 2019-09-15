@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-Hans">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Hexo, NexT">
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="在MongoDB 2.6版本之前（包括2.6），只有一种存储引擎：MMAP（Memory mapping，内存映射引擎）。MongoDB 3.0以后，MMAP升级为MMAPv1， 同时提供了插件式引擎API，引入wiredTiger，mongoDB 3.2默认使用WiredTiger引擎，MongoDB 4.0版本删除了MMAP引擎。 MMAPv1引擎常规的文件系统操作（调用read等函数）为了提">
+<meta property="og:type" content="article">
+<meta property="og:title" content="MongoDB系列（二）MongoDB存储引擎">
+<meta property="og:url" content="http://yoursite.com/ MongoDB系列（二）MongoDB存储引擎/index.html">
+<meta property="og:site_name" content="okspy">
+<meta property="og:description" content="在MongoDB 2.6版本之前（包括2.6），只有一种存储引擎：MMAP（Memory mapping，内存映射引擎）。MongoDB 3.0以后，MMAP升级为MMAPv1， 同时提供了插件式引擎API，引入wiredTiger，mongoDB 3.2默认使用WiredTiger引擎，MongoDB 4.0版本删除了MMAP引擎。 MMAPv1引擎常规的文件系统操作（调用read等函数）为了提">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:image" content="https://raw.githubusercontent.com/okspy/image/master/mongodb/MMAP%E6%98%A0%E5%B0%84.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/okspy/image/master/mongodb/%E5%91%BD%E5%90%8D%E7%A9%BA%E9%97%B4%E4%B8%8E%E5%8C%BA%E6%AE%B5.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/okspy/image/master/mongodb/%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/okspy/image/master/mongodb/%E6%96%87%E4%BB%B6%E7%A9%BA%E9%97%B4%E5%88%86%E9%85%8D1.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/okspy/image/master/mongodb/%E7%9B%AE%E5%BD%95%E7%BB%93%E6%9E%84.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/okspy/image/master/mongodb/WiredTiger%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/okspy/image/master/mongodb/WiredTiger-Page.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/okspy/image/master/mongodb/WireTiger%E6%95%B0%E6%8D%AE%E6%9B%B4%E6%96%B0.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/okspy/image/master/mongodb/B%E6%A0%91.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/okspy/image/master/mongodb/B+%E6%A0%91.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/okspy/image/master/mongodb/WiredTiger%E4%BA%8B%E5%8A%A1.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/okspy/image/master/mongodb/MVCC.png">
+<meta property="og:updated_time" content="2019-09-15T00:21:50.361Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="MongoDB系列（二）MongoDB存储引擎">
+<meta name="twitter:description" content="在MongoDB 2.6版本之前（包括2.6），只有一种存储引擎：MMAP（Memory mapping，内存映射引擎）。MongoDB 3.0以后，MMAP升级为MMAPv1， 同时提供了插件式引擎API，引入wiredTiger，mongoDB 3.2默认使用WiredTiger引擎，MongoDB 4.0版本删除了MMAP引擎。 MMAPv1引擎常规的文件系统操作（调用read等函数）为了提">
+<meta name="twitter:image" content="https://raw.githubusercontent.com/okspy/image/master/mongodb/MMAP%E6%98%A0%E5%B0%84.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/ MongoDB系列（二）MongoDB存储引擎/">
+
+
+
+
+
+  <title>MongoDB系列（二）MongoDB存储引擎 | okspy</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">okspy</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/ MongoDB系列（二）MongoDB存储引擎/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="shipengyang">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="okspy">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">MongoDB系列（二）MongoDB存储引擎</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-09-15T00:00:00+08:00">
+                2019-09-15
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/数据库/" itemprop="url" rel="index">
+                    <span itemprop="name">数据库</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>在MongoDB 2.6版本之前（包括2.6），只有一种存储引擎：MMAP（Memory mapping，内存映射引擎）。MongoDB 3.0以后，MMAP升级为MMAPv1， 同时提供了插件式引擎API，引入wiredTiger，mongoDB 3.2默认使用WiredTiger引擎，MongoDB 4.0版本删除了MMAP引擎。</p>
+<h1 id="MMAPv1引擎"><a href="#MMAPv1引擎" class="headerlink" title="MMAPv1引擎"></a>MMAPv1引擎</h1><p>常规的文件系统操作（调用read等函数）为了提高读写效率和保护磁盘，采用的是页缓存机制，读文件时需要先将文件页从磁盘拷贝至页缓存中，页缓存处在内核空间，不能被用户进程直接寻址，还需要将页缓存中的数据再次拷贝到内存对应的用户空间中，所以需要通过两次数据拷贝的过程，才能完成进程对文件内容的获取。</p>
+<p>在MMAP操作文件时，创建新的虚拟存储区域，建立文件磁盘地址与虚拟地址的映射关系，<strong>此时MMAP只是在虚拟内存分配了地址空间，所以32位的机器，最多支持2GB的文件映射</strong>。之后访问数据时，通过已建立好的映射关系,只使用一次数据拷贝，就从磁盘中将数据传入内存的用户空间中，供进程使用。</p>
+<p><img src="https://raw.githubusercontent.com/okspy/image/master/mongodb/MMAP%E6%98%A0%E5%B0%84.png" alt="img"></p>
+<p>在MongoDB的MMAPv1引擎机制中，服务器启动时，其内存对所有数据文件进行映射，接下来<strong>完全由操作系统负责将数据刷新到磁盘，以及管理内存中数据页的交换</strong>。</p>
+<h2 id="MMAPv1引擎的命名空间与区段"><a href="#MMAPv1引擎的命名空间与区段" class="headerlink" title="MMAPv1引擎的命名空间与区段"></a>MMAPv1引擎的命名空间与区段</h2><p>MMAPv1引擎中，每个数据库由一个.ns文件和若干数据文件组成，数据文件从0开始编号，mydb.0、mydb.1、mydb.2等，文件大小从64MB起，依次倍增，最大为2GB。这一特性使得较小的数据库不会浪费过多的空间，而较大的数据库可使用连续的磁盘空间。图中，mydb.1、mydb.2、mydb.3（为便于理解，此处省略了mydb.0）分别是数据库mydb的三个数据文件，mydb.ns的文件用于保存mydb数据库的命名空间元数据，图中未给出。</p>
+<p>每个数据库包含多个命名空间（namespace），存放在.ns文件中，单个命名空间128字节，数据库按照命名空间进行组织，每个命名空间中存放特定集合的数据，<strong>集合中的文档、索引都拥有自己的命名空间</strong>。mydb.ns文件实际是一个hash表，用于快速定位某个namespace的起始位置。</p>
+<p>如下图，数据库mydb包含了两个集合c1、c2，对应<strong>两个命名空间mydb.c1、mydb.c2</strong>，mydb.$freelist是一个特殊的命名空间，用于跟踪记录不再使用的区段（如被删除的集合或索引所在的区段），最后，还有一个预分配命名空间。</p>
+<p>每个命名空间的数据可以在磁盘上分为几组数据，即区段。这几个区段在磁盘上未必是连续的（图例中不连续）。</p>
+<p>MongoDB也会预分配数据文件，数据文件一旦被填满，就开始预分配，这意味着MongoDB服务器总会为每个数据库维护一个额外的空白数据文件（如图中的mydb.3），以提前避免文件分配失败。使用 <code>-- noprealloc</code>选项可以关闭预分配功能。</p>
+<p>mydb.1、mydb.2，分成了分属于不同命名空间的区段，mydb.1有三个区段、mydb.2有四个区段、mydb.3只有一个区段，该区段属于预分配空间。在为命名空间分配一个新的区段时，会先搜索空闲列表mydb.$freelist，查看是否存在合适大小的区段。</p>
+<p><img src="https://raw.githubusercontent.com/okspy/image/master/mongodb/%E5%91%BD%E5%90%8D%E7%A9%BA%E9%97%B4%E4%B8%8E%E5%8C%BA%E6%AE%B5.png" alt="1566543786631"></p>
+<p>前面提到，mydb.ns是一个hash表，一个namespace对应一个集合或索引，该hash表中，一个节点元数据结构如下，每个节点628字节，16MB的.ns文件最多存储26715个namespace。哈希碰撞的概率也较低，采用的线性探针的方式解决哈希冲突。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">Node</span> &#123;</span></span><br><span class="line">    Namespace key;</span><br><span class="line">    <span class="keyword">int</span> hash;</span><br><span class="line">    NamespcaeDetails value;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>key为namespace的名字，固定分配128字节的空间</li>
+<li>hash为namespace的hash值</li>
+<li>value包含该namespace的所有元数据，定义如下</li>
+</ul>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">NamespaceDetails</span> &#123;</span></span><br><span class="line">    DiskLoc firstExtent; <span class="comment">// 第一个区段</span></span><br><span class="line">    DiskLoc lastExtent; <span class="comment">// 最后一个区段</span></span><br><span class="line">    <span class="comment">// 不同大小的删除列表</span></span><br><span class="line">    DiskLoc deletedListSmall[SmallBuckets];</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">DiskLoc</span> &#123;</span></span><br><span class="line">    <span class="keyword">int</span> _a; <span class="comment">// 数据文件编号，mydb.1编号为1，定位文件</span></span><br><span class="line">    <span class="keyword">int</span> ofs; <span class="comment">// 文件内部偏移量，定位文件内部的存储位置</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>firstExtent描述了第一个区段的位置</li>
+<li>lastExtent描述了最后一个区段的位置</li>
+<li>deletedList描述了各个被删除的元素</li>
+</ul>
+<p>通过这些信息，可以遍历一个namespace下的所有区段的有效数据，区段的定义如下</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">Extent</span> &#123;</span></span><br><span class="line">    <span class="keyword">unsigned</span> magic; <span class="comment">// 魔法数，校验合法性</span></span><br><span class="line">    DiskLoc myLocation; <span class="comment">// extent自身位置指针</span></span><br><span class="line">    DiskLoc next; <span class="comment">// 下一个extent位置指针</span></span><br><span class="line">    DiskLoc pre; <span class="comment">// 上一个extent位置指针</span></span><br><span class="line">    <span class="keyword">int</span> len; <span class="comment">// extent长度</span></span><br><span class="line">    DiskLoc firstRecord; <span class="comment">// extent内第一个record位置指针</span></span><br><span class="line">    DiskLoc lastRecord; <span class="comment">// extent内最后一个record位置指针</span></span><br><span class="line">    <span class="keyword">char</span> _extentData[<span class="number">4</span>];</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Record</span> &#123;</span></span><br><span class="line">    <span class="keyword">int</span> _len;</span><br><span class="line">    <span class="keyword">int</span> _extentOfs;</span><br><span class="line">    <span class="keyword">int</span> _nextOfs;</span><br><span class="line">    <span class="keyword">int</span> _preOfs;</span><br><span class="line">    <span class="keyword">char</span> _data[<span class="number">4</span>];</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// record 被删除后，以deletedRecord存储</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">DeletedRecord</span> &#123;</span></span><br><span class="line">   <span class="keyword">int</span> _len;  <span class="comment">// record长度</span></span><br><span class="line">   <span class="keyword">int</span> _extentOfs; <span class="comment">// record所在的extent位置指针</span></span><br><span class="line">   DiskLoc _nextDeleted; <span class="comment">// 下一个已删除记录的位置</span></span><br><span class="line">&#125;；</span><br></pre></td></tr></table></figure>
+
+<p>一条record对应mongoDB的一个文档，即一条数据记录。同一个区段（extent）下的所有<strong>record以双向链表的形式组织</strong>，record 被删除后，以deletedRecord存储，<strong>deletedRecord以单向链表的形式组织</strong>。</p>
+<h2 id="MMAPv1引擎CRUD"><a href="#MMAPv1引擎CRUD" class="headerlink" title="MMAPv1引擎CRUD"></a>MMAPv1引擎CRUD</h2><p><strong>写入</strong></p>
+<p>1、检查namespaceDetail中的deletedList中是否有合适的deletedRecord可以利用，如果有，则删除该记录并复用删除空间。</p>
+<p>2、检查数据文件的<strong>$freelist</strong>里是否有大小合适的不再使用的区段，如果有则复用该空间</p>
+<p>3、第1、2步均不成功，创建新的区段，如果当前数据文件没有足够空间创建新区段，创建新数据文件。</p>
+<p><strong>删除</strong></p>
+<p>删除的记录会以DeleteRecord的形式插入到对应集合的删除链表里，删除的空间在下一次写入新的记录时可能会被利用上；但也有可能一直用不上而浪费。比如某个128Bytes大小的记录被删除后，接下来写入的记录一直大于128B，则这个128B的DeletedRecord不能有效的被利用。当删除很多时，可能产生很多不能重复利用的”存储碎片”，从而导致存储空间大量浪费；<strong>可通过compact命令整理碎片。</strong>该命令会持有数据库级别的锁。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">db.runCommand ( &#123; <span class="attr">compact</span>: <span class="string">'&lt;collection&gt;'</span> &#125; )</span><br></pre></td></tr></table></figure>
+
+<p><strong>更新</strong></p>
+<p>更新跟删除类似，也有可能产生很多存储碎片</p>
+<ul>
+<li>更新的Record比原来小，可以直接复用现有的空间（原地更新）；多余的空间如果足够多，会将剩余空间插入到DeletedRecord链表；</li>
+<li>更新的Record比原来大，更新相当于删除 + 新写入，原来的空间会插入到DeletedRecord链表里。文档需要移动到文件中的其他位置，这种因更新导致的文档位置移动会严重降低写入性能，因为一旦文档移动，集合中的所有索引都要同步修改文档新的存储位置，<strong>可通过设置填充因子（paddingFactor）进行优化</strong>，比如：如果填充因子为2，一个大小为200字节的文档插入是，会自动在文档后填充100个字节的空间，这样在更新时，会使用第一种方式（更新的record比原来小）。</li>
+</ul>
+<p><strong>查询</strong></p>
+<p>没有索引的情况下，查询某个Record需要遍历整个集合，读取出符合条件的Record；如果经常需要根据每个纬度查询Record，则需要给集合建立索引以提供查询效率。</p>
+<h2 id="MMAPv1引擎锁粒度"><a href="#MMAPv1引擎锁粒度" class="headerlink" title="MMAPv1引擎锁粒度"></a>MMAPv1引擎锁粒度</h2><p>MMAPv1 3.0版本之前锁粒度是库，3.0版本后所粒度是集合，即表级锁，不支持事务，原子操作是文档的保存、修改、删除。</p>
+<h1 id="WiredTiger引擎"><a href="#WiredTiger引擎" class="headerlink" title="WiredTiger引擎"></a>WiredTiger引擎</h1><p>mongoDB 3.2设置wiredTiger为默认的存储引擎（之前版本默认MMAPv1），WiredTiger存储引擎负责将写操作写入cache（<strong>B树结构</strong>），满足条件后持久化（默认条件每隔60s或达到2GB）</p>
+<p>与MMAPv1一样，journal日志（<strong>预写式日志，write ahead log，WAL</strong>）用于数据恢复。对于write操作，首先被持久写入journal，然后在内存中保存变更数据，<strong>条件满足后提交一个新的检测点checkpoint</strong>，即检测点之前的数据只是在journal中持久存储，但并没有在mongodb的数据文件中持久化，延迟持久化可以提升磁盘效率，如果在提交checkpoint之前，mongodb异常退出，此后再次启动可以根据journal日志恢复数据。，如果60s内机器宕机，且未开启journal日志，会丢失这60s的数据。journal日志默认每100毫秒同步磁盘一次，每100M数据生成一个新的journal文件，journal默认使用了snappy压缩，检测点创建后，此前的journal日志即可清除。</p>
+<p><img src="https://raw.githubusercontent.com/okspy/image/master/mongodb/%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E.png" alt="1566802633253"></p>
+<h2 id="WiredTiger引擎文件空间分配"><a href="#WiredTiger引擎文件空间分配" class="headerlink" title="WiredTiger引擎文件空间分配"></a>WiredTiger引擎文件空间分配</h2><p>MMAPv1引擎中，集合和索引都以命名空间的方式混合存储在数据库文件中mydb.1、mydb.2等，同一个数据库文件存在多个集合的数据，例如mydb.1保存了集合c1、c2，即便删除了某个集合或索引，其占用的磁盘空间也会产生碎片难易清除。文件的存储级别是<strong>数据库级别</strong></p>
+<p>WiredTiger引擎中，文件的存储级别是<strong>集合和索引级别</strong>。将每个数据库中的所有集合和索引分别存储在单独的文件中，删除了集合或索引后，对应的文件自动清除，磁盘回收效率更高。</p>
+<p>data/db目录下的文件如下：</p>
+<p><img src="https://raw.githubusercontent.com/okspy/image/master/mongodb/%E6%96%87%E4%BB%B6%E7%A9%BA%E9%97%B4%E5%88%86%E9%85%8D1.png" alt="1566795516284"></p>
+<p>整体的目录结构如下图：</p>
+<p><img src="https://raw.githubusercontent.com/okspy/image/master/mongodb/%E7%9B%AE%E5%BD%95%E7%BB%93%E6%9E%84.png" alt="1566796884855"></p>
+<ul>
+<li>collection.wt存储集合信息，以编号不同区分，collection1.wt、collection2.wt</li>
+<li>index.wt存储索引信息，编号区分</li>
+<li>WiredTiger.lock定义锁操作</li>
+<li>WiredTiger.wt 存储collection.wt与index.wt的元数据</li>
+<li>WiredTiger.turtle 存储WiredTiger.wt 元数据</li>
+<li>journal 目录 存储journal日志</li>
+</ul>
+<h2 id="WiredTiger引擎存储模型"><a href="#WiredTiger引擎存储模型" class="headerlink" title="WiredTiger引擎存储模型"></a>WiredTiger引擎存储模型</h2><p>WiredTiger在执行写入任务时，不是直接写入到磁盘，首先写入的是cache，然后批量持久化，这也是MongoDB吃内存的主要原因，cache中使用B树保存数据，每个B树对应磁盘上的一个物理文件，树节点对应一个内存页、硬盘块，<strong>所以根节点与内部节点均会用于存储数据</strong>，目的是尽可能减少磁盘IO从而提高性能。</p>
+<p><img src="https://raw.githubusercontent.com/okspy/image/master/mongodb/WiredTiger%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84.png" alt="1566801831809"></p>
+<p>cache中的一个Page对应磁盘上的一个Extent（Mysql Innodb是1对4的关系），Extent大小为4K，存储了一系列键值对。</p>
+<p><img src="https://raw.githubusercontent.com/okspy/image/master/mongodb/WiredTiger-Page.png" alt="1566869294605"></p>
+<h3 id="WiredTiger引擎更新、插入、删除"><a href="#WiredTiger引擎更新、插入、删除" class="headerlink" title="WiredTiger引擎更新、插入、删除"></a>WiredTiger引擎更新、插入、删除</h3><ul>
+<li>遍历B树，找到待更新的页（如果cahce中没有热数据，从磁盘中获取，生成一个WT_ROW）</li>
+<li>如果有必要，生成预写日志</li>
+<li>在待更新的页执行更新、插入、删除操作</li>
+</ul>
+<p>当对某个键的值进行更新、删除时，将创建一个用于更新的结构，包含了事务id、已更改数据、指向后续更新的指针，之后的更新会将自己添加到前一个结构的末尾，随着时间的推移创建一个不同版本值的链式结构，N次更新组成长度为N的linkedlist。</p>
+<p>当进行插入时，生成一个skip linkedlist用于保存插入的信息，N次插入生成长度为N的保存了各skip linkedlist头信息的linkedlist—WT_INSERT_HEAD。</p>
+<h3 id="Copy-on-write"><a href="#Copy-on-write" class="headerlink" title="Copy on write"></a>Copy on write</h3><p>WiredTiger引擎采用Copy on write的方式管理修改操作（insert、update、delete），修改操作会先缓存在cache里，持久化时，<strong>修改操作不会在原来的leaf page上进行，而是写入新分配的page，每次checkpoint都会产生一个新的Root Page</strong>。</p>
+<p><img src="https://raw.githubusercontent.com/okspy/image/master/mongodb/WireTiger%E6%95%B0%E6%8D%AE%E6%9B%B4%E6%96%B0.png" alt="1566804600903"></p>
+<p>与MMAPv1引擎类似，当一个文档被删除时，WiredTiger不会立即归还该空间，会在后续的删除、更新、插入操作中优先复用该空间，可能会存在碎片，但影响不大，如果要整理碎片，可以调用compact命令。</p>
+<h2 id="为什么WiredTiger引擎使用B树而不是B-树"><a href="#为什么WiredTiger引擎使用B树而不是B-树" class="headerlink" title="为什么WiredTiger引擎使用B树而不是B+树"></a>为什么WiredTiger引擎使用B树而不是B+树</h2><p><img src="https://raw.githubusercontent.com/okspy/image/master/mongodb/B%E6%A0%91.png" alt="img"></p>
+<p><img src="https://raw.githubusercontent.com/okspy/image/master/mongodb/B+%E6%A0%91.png" alt="img"></p>
+<p>B树与B+树的简要图如上，二者最大的区别就是B树所有节点都用来存储key+data，而B+树只有叶子节点存储key+data，根节点与中间节点保存的是key的副本，相应的页存储的是key+指针，所有 data 存储在叶节点导致查询时间复杂度固定为 log n。而B-树查询时间复杂度不固定，与 key 在树中的位置有关，最好为O(1)。</p>
+<p><strong>无论是MongoDB选择B树，还是Mysql的InnoDB、MyIsam引擎选择B+树，目的都是尽可能减少磁盘IO。</strong></p>
+<p>MongoDB是一种聚合型数据库，它组织数据的特点就是将经常访问的数据放在一块（同一个JSON下包含所有信息），对于单个查询能够在与数据库的一次交互中将所有数据全部取出来，对于上图中key为37的数据，无论是B树还是B+树，都是3次IO，而对于key为50的数据，使用B树只需要1次IO，使用B+树需要3次IO。</p>
+<p>而Mysql是关系型数据库，使用B+树提高根节点和内部节点存放的信息量（由于内节点无 data 域，每个节点能索引的范围更大更精确），从而减少查询次数，达到减小磁盘IO的目的。最重要的是，B+树由于数据全部存储在叶子节点，并且通过指针串在一起，这样就很容易的进行区间遍历甚至全部遍历，然而，MongoDB很少有区间访问的需求，也就没有这种磁盘预读机制的需求。</p>
+<h2 id="WiredTiger引擎锁粒度"><a href="#WiredTiger引擎锁粒度" class="headerlink" title="WiredTiger引擎锁粒度"></a>WiredTiger引擎锁粒度</h2><p>WiredTiger的锁粒度为文档，对应Mysql的行级锁。</p>
+<h2 id="WiredTiger引擎4-0——事务"><a href="#WiredTiger引擎4-0——事务" class="headerlink" title="WiredTiger引擎4.0——事务"></a>WiredTiger引擎4.0——事务</h2><p>mongoDB对一个文档的写操作，会产生三个动作：</p>
+<ul>
+<li>对存储数据的Btree执行写操作</li>
+<li>对存储索引的Btree执行写操作</li>
+<li>对oplog（option log，与预写日志不是一回事，一个是已发生的，一个是将要发生的）执行写操作</li>
+</ul>
+<p>MongoDB的单文档事务指：上述三个动作的更新是原子的，处于同一个事务中。不存在<strong>索引段中的某个RecordId，在数据段中找不到</strong>，也不存在<strong>一条记录的更改被应用，但是没有记录到oplog中</strong>, 反之亦然。</p>
+<p>MongoDB  4.0提供了事务API，开始支持事务操作。它的事务是基于快照SANPSHOT、MVCC（Multi-Version Concurrency Control，多版本并发控制）实现的。</p>
+<h3 id="sanpshot"><a href="#sanpshot" class="headerlink" title="sanpshot"></a>sanpshot</h3><p>snapshot即快照。事务开始时，对整个WiredTiger内部正在执行或将要执行的所有事务进行一次截屏，保存当时整个引擎所有事务的状态。</p>
+<p><img src="https://raw.githubusercontent.com/okspy/image/master/mongodb/WiredTiger%E4%BA%8B%E5%8A%A1.png" alt="1566873597953"></p>
+<p>snapshot_object保存了快照信息。</p>
+<ul>
+<li>snap_min 最小执行事务</li>
+<li>snap_max 最大执行事务</li>
+<li>snap_array 位于snap_min与snap_max之间正在执行的事务，是不可见的。</li>
+</ul>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">snapshot_object = &#123;</span><br><span class="line">    snap_min=T1,</span><br><span class="line">    snap_max=T5,</span><br><span class="line">	snap_array=&#123;T1, T4, T5&#125;,</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p><strong>凡是出现在snap_array中或事务ID&gt;snap_max的事务均是不可见的。</strong>即便建立snapshot之后T1、T4、T5提交了，T6也无法访问的T1、T4、T5的修改。</p>
+<h3 id="MVCC"><a href="#MVCC" class="headerlink" title="MVCC"></a>MVCC</h3><p>MVCC基于事务ID和记录值实现一个链表，新的事务与相应的修改value，插入链表头部，链表中的节点定义抽象如下：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">wt_mvcc&#123;</span><br><span class="line">	transaction_id:    本次修改事务的ID	</span><br><span class="line">	value:             本次修改后的值</span><br><span class="line">    next;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>读取值时从链表头开始，根据snapshot来判断是否可读，如果不可读，向链表尾方向移动，直到找到第一个能够读的数据版本，下图中，读事务T5与读事务T3均会读到V1。</p>
+<p><img src="https://raw.githubusercontent.com/okspy/image/master/mongodb/MVCC.png" alt="1566880968502"></p>
+<h3 id="事务隔离"><a href="#事务隔离" class="headerlink" title="事务隔离"></a>事务隔离</h3><p>传统的数据库事务隔离分为:Read-Uncommited(未提交读)、Read-Commited(提交读)、Repeatable-Read(可重复读)和Serializable(串行化)，WiredTigerT引擎并没有按照传统的事务隔离实现这四个等级，而是基于snapshot的特点实现了下列事务隔离方式：</p>
+<ul>
+<li>Read-Uncommited</li>
+<li>Read-Commited</li>
+<li>snapshot-Isolation(快照隔离)</li>
+</ul>
+<p><strong>Read-Uncommited</strong></p>
+<p>又称为脏读，是最低的隔离级别，<strong>总是读取到系统中最新的修改（包括未提交）</strong>。WiredTiger的实现方式很简单，将snap_array置为空即可。在上图中，隔离级别设置为脏读后，事务T5读取到的值为V4。一般数据库不会设置成这种隔离方式，它违背了事务的ACID的特性。</p>
+<p><strong>Read-Commited</strong></p>
+<p>又称为幻读，<strong>总是读取到最新的、已提交的修改</strong>。这种隔离级别可能在一个长事务多次读取一个值的时候前后读到的值可能不一样。</p>
+<p>假设上图中的T5包含了两次读操作，中间sleep了2s，在这2s内T4提交了，则事务T5中，第一次读到的值为V1，第二次读到的值为V4。</p>
+<p><strong>snapshot-Isolation(快照隔离)</strong></p>
+<p>只在事务开始时生成一次快照，无论事务持续的过程中其他事务修改了几次值，该快照都不改变，<strong>所以值在整个事务执行过程中只有一个版本</strong>。</p>
+<p>事务T4的修改对T5不可见，如果T5也是一个写事务，在T5开始时，T4未提交，T5执行过程中，T4提交了，T5再去修改值，会产生失败回滚。这样做的目的是防止忽略不可见数据的修改。</p>
+<h3 id="与Mysql事务的区别"><a href="#与Mysql事务的区别" class="headerlink" title="与Mysql事务的区别"></a>与Mysql事务的区别</h3><p>通过上面对三种事务隔离方式的分析，<strong>WiredTiger并没有使用传统的事务独占锁和共享访问锁来保证事务隔离</strong>，而是通过对系统中<strong>写事务的snapshot截屏来实现</strong>。这样做的目的是在<strong>保证事务隔离的情况下又能提高系统事务并发的能力</strong>。</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/hashMap/" rel="next" title="hashMap源码解读">
+                <i class="fa fa-chevron-left"></i> hashMap源码解读
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/MongoDB系列（四）MongoDB副本集与分片/" rel="prev" title="MongoDB系列（四）MongoDB副本集与分片">
+                MongoDB系列（四）MongoDB副本集与分片 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">shipengyang</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">7</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                
+                  <span class="site-state-item-count">4</span>
+                  <span class="site-state-item-name">分类</span>
+                
+              </div>
+            
+
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#MMAPv1引擎"><span class="nav-number">1.</span> <span class="nav-text">MMAPv1引擎</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#MMAPv1引擎的命名空间与区段"><span class="nav-number">1.1.</span> <span class="nav-text">MMAPv1引擎的命名空间与区段</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#MMAPv1引擎CRUD"><span class="nav-number">1.2.</span> <span class="nav-text">MMAPv1引擎CRUD</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#MMAPv1引擎锁粒度"><span class="nav-number">1.3.</span> <span class="nav-text">MMAPv1引擎锁粒度</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#WiredTiger引擎"><span class="nav-number">2.</span> <span class="nav-text">WiredTiger引擎</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#WiredTiger引擎文件空间分配"><span class="nav-number">2.1.</span> <span class="nav-text">WiredTiger引擎文件空间分配</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#WiredTiger引擎存储模型"><span class="nav-number">2.2.</span> <span class="nav-text">WiredTiger引擎存储模型</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#WiredTiger引擎更新、插入、删除"><span class="nav-number">2.2.1.</span> <span class="nav-text">WiredTiger引擎更新、插入、删除</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Copy-on-write"><span class="nav-number">2.2.2.</span> <span class="nav-text">Copy on write</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#为什么WiredTiger引擎使用B树而不是B-树"><span class="nav-number">2.3.</span> <span class="nav-text">为什么WiredTiger引擎使用B树而不是B+树</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#WiredTiger引擎锁粒度"><span class="nav-number">2.4.</span> <span class="nav-text">WiredTiger引擎锁粒度</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#WiredTiger引擎4-0——事务"><span class="nav-number">2.5.</span> <span class="nav-text">WiredTiger引擎4.0——事务</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#sanpshot"><span class="nav-number">2.5.1.</span> <span class="nav-text">sanpshot</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#MVCC"><span class="nav-number">2.5.2.</span> <span class="nav-text">MVCC</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#事务隔离"><span class="nav-number">2.5.3.</span> <span class="nav-text">事务隔离</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#与Mysql事务的区别"><span class="nav-number">2.5.4.</span> <span class="nav-text">与Mysql事务的区别</span></a></li></ol></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">shipengyang</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

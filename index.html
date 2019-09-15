@@ -229,7 +229,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/mongodb/">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/MongoDB系列（一）MongoDB简介/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="shipengyang">
@@ -248,7 +248,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/mongodb/" itemprop="url">mongoldb原理</a></h1>
+                <a class="post-title-link" href="/MongoDB系列（一）MongoDB简介/" itemprop="url">MongoDB系列（一）MongoDB简介</a></h1>
         
 
         <div class="post-meta">
@@ -322,187 +322,205 @@
       
         
           
-            <h1 id="MongoDB原理"><a href="#MongoDB原理" class="headerlink" title="MongoDB原理"></a>MongoDB原理</h1><p>版本历史</p>
-<table>
-<thead>
-<tr>
-<th>版本</th>
-<th>作者</th>
-<th>日期</th>
-<th>描述</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>v0.0.1</td>
-<td>史鹏阳</td>
-<td>2019/8/23</td>
-<td>完成文档草稿</td>
-</tr>
-</tbody></table>
-<p>参考资料</p>
-<table>
-<thead>
-<tr>
-<th>资料名称</th>
-<th>来源</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>《MongoDB权威指南》</td>
-<td>图书</td>
-</tr>
-<tr>
-<td>《mongodb官方文档》</td>
-<td><a href="https://docs.mongodb.com" target="_blank" rel="noopener">https://docs.mongodb.com</a></td>
-</tr>
-<tr>
-<td>《云栖社区》</td>
-<td><a href="https://yq.aliyun.com/" target="_blank" rel="noopener">https://yq.aliyun.com/</a></td>
-</tr>
-</tbody></table>
-<p>[TOC]</p>
-<h2 id="3-存储引擎"><a href="#3-存储引擎" class="headerlink" title="3 存储引擎"></a>3 存储引擎</h2><p>在MongoDB 2.6版本之前（包括2.6），只有一种存储引擎：MMAP（Memory mapping，内存映射引擎）。MongoDB 3.0以后，MMAP升级为MMAPv1， 同时提供了插件式引擎API，引入wiredTiger，mongoDB 3.2默认使用WiredTiger引擎，MongoDB 4.0版本删除了MMAP引擎。</p>
-<h3 id="3-1-MMAPv1引擎"><a href="#3-1-MMAPv1引擎" class="headerlink" title="3.1 MMAPv1引擎"></a>3.1 MMAPv1引擎</h3><p>常规的文件系统操作（调用read等函数）为了提高读写效率和保护磁盘，采用的是页缓存机制，读文件时需要先将文件页从磁盘拷贝至页缓存中，页缓存处在内核空间，不能被用户进程直接寻址，还需要将页缓存中的数据再次拷贝到内存对应的用户空间中，所以需要通过两次数据拷贝的过程，才能完成进程对文件内容的获取。</p>
-<p>在MMAP操作文件时，创建新的虚拟存储区域，建立文件磁盘地址与虚拟地址的映射关系，<strong>此时MMAP只是在虚拟内存分配了地址空间，所以32位的机器，最多支持2GB的文件映射</strong>。之后访问数据时，通过已建立好的映射关系,只使用一次数据拷贝，就从磁盘中将数据传入内存的用户空间中，供进程使用。</p>
-<p><img src="https://raw.githubusercontent.com/okspy/image/master/mongodb/MMAP%E6%98%A0%E5%B0%84.png" alt="img"></p>
-<p>在MongoDB的MMAPv1引擎机制中，服务器启动时，其内存对所有数据文件进行映射，接下来<strong>完全由操作系统负责将数据刷新到磁盘，以及管理内存中数据页的交换</strong>。</p>
-<h4 id="3-1-1-命名空间与区段"><a href="#3-1-1-命名空间与区段" class="headerlink" title="3.1.1 命名空间与区段"></a>3.1.1 命名空间与区段</h4><p>MMAPv1引擎中，每个数据库由一个.ns文件和若干数据文件组成，数据文件从0开始编号，mydb.0、mydb.1、mydb.2等，文件大小从64MB起，依次倍增，最大为2GB。这一特性使得较小的数据库不会浪费过多的空间，而较大的数据库可使用连续的磁盘空间。图中，mydb.1、mydb.2、mydb.3（为便于理解，此处省略了mydb.0）分别是数据库mydb的三个数据文件，mydb.ns的文件用于保存mydb数据库的命名空间元数据，图中未给出。</p>
-<p>每个数据库包含多个命名空间（namespace），存放在.ns文件中，单个命名空间128字节，数据库按照命名空间进行组织，每个命名空间中存放特定集合的数据，<strong>集合中的文档、索引都拥有自己的命名空间</strong>。mydb.ns文件实际是一个hash表，用于快速定位某个namespace的起始位置。</p>
-<p>如下图，数据库mydb包含了两个集合c1、c2，对应<strong>两个命名空间mydb.c1、mydb.c2</strong>，mydb.$freelist是一个特殊的命名空间，用于跟踪记录不再使用的区段（如被删除的集合或索引所在的区段），最后，还有一个预分配命名空间。</p>
-<p>每个命名空间的数据可以在磁盘上分为几组数据，即区段。这几个区段在磁盘上未必是连续的（图例中不连续）。</p>
-<p>MongoDB也会预分配数据文件，数据文件一旦被填满，就开始预分配，这意味着MongoDB服务器总会为每个数据库维护一个额外的空白数据文件（如图中的mydb.3），以提前避免文件分配失败。使用 <code>-- noprealloc</code>选项可以关闭预分配功能。</p>
-<p>mydb.1、mydb.2，分成了分属于不同命名空间的区段，mydb.1有三个区段、mydb.2有四个区段、mydb.3只有一个区段，该区段属于预分配空间。在为命名空间分配一个新的区段时，会先搜索空闲列表mydb.$freelist，查看是否存在合适大小的区段。</p>
-<p><img src="https://raw.githubusercontent.com/okspy/image/master/mongodb/%E5%91%BD%E5%90%8D%E7%A9%BA%E9%97%B4%E4%B8%8E%E5%8C%BA%E6%AE%B5.png" alt="1566543786631"></p>
-<p>前面提到，mydb.ns是一个hash表，一个namespace对应一个集合或索引，该hash表中，一个节点元数据结构如下，每个节点628字节，16MB的.ns文件最多存储26715个namespace。哈希碰撞的概率也较低，采用的线性探针的方式解决哈希冲突。</p>
-<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">Node</span> &#123;</span></span><br><span class="line">    Namespace key;</span><br><span class="line">    <span class="keyword">int</span> hash;</span><br><span class="line">    NamespcaeDetails value;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+            <p>MongoDB是一款强大、灵活、易于扩展的、由C++编写的聚合型、文档型、NoSQL数据库，支持二级索引、范围查询、排序、聚合、地理空间索引等功能。</p>
+<p>MongoDB是面向文档的数据库，不是关系型数据库，不采用关系模型是为了更好的扩展性。与关系型数据库相比，有以下特点：</p>
+<ul>
+<li>没有“一行数据”的概念，取而代之的是“一条文档”</li>
+<li>不再有预定义模式，文档的键和值不再是固定的类型和大小，可以随意扩展。</li>
+<li>易于扩展，随着数据的增长，横向扩展（增加机器）变得更加方便，MongoDB能够自动处理跨集群的数据和负载，自动重新分配文档、自动将用户请求路由至正确的机器上。</li>
+<li>功能丰富，支持索引、聚合、文件存储、以及特殊集合，如会过期的数据：日志、会话等。</li>
+<li>性能更强，4.0版本前不支持事务，但提供了诸多原子操作：文档的保存、修改、删除。</li>
+</ul>
+<p><img src="https://raw.githubusercontent.com/okspy/image/master/mongodb/NoSQL.png" alt="img"></p>
+<h1 id="基础概念"><a href="#基础概念" class="headerlink" title="基础概念"></a>基础概念</h1><h2 id="文档与集合"><a href="#文档与集合" class="headerlink" title="文档与集合"></a>文档与集合</h2><p>文档是MongoDB中数据的基本单元，类似于关系型数据库管理系统中的行，但灵活性更高。例如：</p>
+<p><code>{&quot;name&quot;:&quot;xiaoming&quot;,&quot;age&quot;:20}</code></p>
+<p>集合是一组文档，可以看做是一个拥有动态模式的表。因此，MongoDB中的文档没有预定义模，一个集合中可以保存多个完全不同的文档，例如：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">1</span>  &#123;<span class="string">"name"</span>:<span class="string">"xiaoming"</span>, <span class="string">"age"</span>:<span class="number">20</span>&#125;</span><br><span class="line"><span class="number">2</span>  &#123;<span class="string">"name"</span>:<span class="string">"xiaohei"</span>, <span class="string">"age"</span>:<span class="number">20</span>, <span class="string">"man"</span>:<span class="literal">true</span>, <span class="string">"address"</span>:<span class="string">"sz"</span>&#125; </span><br><span class="line"><span class="number">3</span>  &#123;<span class="string">"device"</span>:<span class="string">"rcu"</span>,<span class="string">"devId"</span>:<span class="string">"1234567890"</span>&#125;</span><br></pre></td></tr></table></figure>
 
-<ul>
-<li>key为namespace的名字，固定分配128字节的空间</li>
-<li>hash为namespace的hash值</li>
-<li>value包含该namespace的所有元数据，定义如下</li>
-</ul>
-<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">NamespaceDetails</span> &#123;</span></span><br><span class="line">    DiskLoc firstExtent; <span class="comment">// 第一个区段</span></span><br><span class="line">    DiskLoc lastExtent; <span class="comment">// 最后一个区段</span></span><br><span class="line">    <span class="comment">// 不同大小的删除列表</span></span><br><span class="line">    DiskLoc deletedListSmall[SmallBuckets];</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">DiskLoc</span> &#123;</span></span><br><span class="line">    <span class="keyword">int</span> _a; <span class="comment">// 数据文件编号，mydb.1编号为1，定位文件</span></span><br><span class="line">    <span class="keyword">int</span> ofs; <span class="comment">// 文件内部偏移量，定位文件内部的存储位置</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>备注：集合命名时，不能有空字符串、不能包含\0、不能包含$、不能以system.开头</p>
+<h2 id="数据库"><a href="#数据库" class="headerlink" title="数据库"></a>数据库</h2><p>多个集合组成一个数据库、一个MongoDB实例包含多个数据库，每个数据库拥有独立的权限，在磁盘上，不同的数据库放置在不同的文件夹中，一般的，一个应用程序使用一个数据库。</p>
+<p>有三个数据库是默认保留的：admin（root库）、local（用于副本集模式）、config（用于分片模式）</p>
+<h2 id="数据类型"><a href="#数据类型" class="headerlink" title="数据类型"></a>数据类型</h2><p>MongoDB的文档与JavaScript中对象相近，类似于JSON，MongoDB支持JSON包含的6种数据类型：null、布尔型、数值、字符串、数组、对象，MongoDB还添加了其他一些数据类型：日期、正则表达式、数组、内嵌文档、对象id、二进制数据、JavaScript代码。</p>
+<p>下面只介绍：日期、数组、内嵌文档、对象id。</p>
+<h3 id="日期"><a href="#日期" class="headerlink" title="日期"></a>日期</h3><p>对应JAVA、JS中的Date类，存入数据库的是Date对象，不是日期字符串。数据库中存储的日期为新纪元以来的毫秒数，并未存储时区，Date对象与毫秒之间的转换，由MongoDB负责，客户端不需要关心。</p>
+<h3 id="数组"><a href="#数组" class="headerlink" title="数组"></a>数组</h3><p>与JAVA数组不同的是，数组可以包含不同类型的元素，数组可以嵌套数组。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&#123;<span class="string">"things"</span>:[<span class="string">"apple"</span>, <span class="number">3.1415926</span>]&#125;</span><br></pre></td></tr></table></figure>
 
-<ul>
-<li>firstExtent描述了第一个区段的位置</li>
-<li>lastExtent描述了最后一个区段的位置</li>
-<li>deletedList描述了各个被删除的元素</li>
-</ul>
-<p>通过这些信息，可以遍历一个namespace下的所有区段的有效数据，区段的定义如下</p>
-<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">Extent</span> &#123;</span></span><br><span class="line">    <span class="keyword">unsigned</span> magic; <span class="comment">// 魔法数，校验合法性</span></span><br><span class="line">    DiskLoc myLocation; <span class="comment">// extent自身位置指针</span></span><br><span class="line">    DiskLoc next; <span class="comment">// 下一个extent位置指针</span></span><br><span class="line">    DiskLoc pre; <span class="comment">// 上一个extent位置指针</span></span><br><span class="line">    <span class="keyword">int</span> len; <span class="comment">// extent长度</span></span><br><span class="line">    DiskLoc firstRecord; <span class="comment">// extent内第一个record位置指针</span></span><br><span class="line">    DiskLoc lastRecord; <span class="comment">// extent内最后一个record位置指针</span></span><br><span class="line">    <span class="keyword">char</span> _extentData[<span class="number">4</span>];</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Record</span> &#123;</span></span><br><span class="line">    <span class="keyword">int</span> _len;</span><br><span class="line">    <span class="keyword">int</span> _extentOfs;</span><br><span class="line">    <span class="keyword">int</span> _nextOfs;</span><br><span class="line">    <span class="keyword">int</span> _preOfs;</span><br><span class="line">    <span class="keyword">char</span> _data[<span class="number">4</span>];</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// record 被删除后，以deletedRecord存储</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">DeletedRecord</span> &#123;</span></span><br><span class="line">   <span class="keyword">int</span> _len;  <span class="comment">// record长度</span></span><br><span class="line">   <span class="keyword">int</span> _extentOfs; <span class="comment">// record所在的extent位置指针</span></span><br><span class="line">   DiskLoc _nextDeleted; <span class="comment">// 下一个已删除记录的位置</span></span><br><span class="line">&#125;；</span><br></pre></td></tr></table></figure>
+<h3 id="内嵌文档"><a href="#内嵌文档" class="headerlink" title="内嵌文档"></a>内嵌文档</h3><p>文档可以作为键的值，这样的文档就是内嵌文档。类似于JSON嵌套。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    <span class="string">"things"</span>:&#123;</span><br><span class="line">    	<span class="string">"name"</span>:<span class="string">"apple"</span></span><br><span class="line">        <span class="string">"price"</span>:<span class="number">3.14</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<p>一条record对应mongoDB的一个文档，即一条数据记录。同一个区段（extent）下的所有<strong>record以双向链表的形式组织</strong>，record 被删除后，以deletedRecord存储，<strong>deletedRecord以单向链表的形式组织</strong>。</p>
-<h4 id="3-1-2-CRUD"><a href="#3-1-2-CRUD" class="headerlink" title="3.1.2 CRUD"></a>3.1.2 CRUD</h4><p><strong>写入</strong></p>
-<p>1、检查namespaceDetail中的deletedList中是否有合适的deletedRecord可以利用，如果有，则删除该记录并复用删除空间。</p>
-<p>2、检查数据文件的<strong>$freelist</strong>里是否有大小合适的不再使用的区段，如果有则复用该空间</p>
-<p>3、第1、2步均不成功，创建新的区段，如果当前数据文件没有足够空间创建新区段，创建新数据文件。</p>
-<p><strong>删除</strong></p>
-<p>删除的记录会以DeleteRecord的形式插入到对应集合的删除链表里，删除的空间在下一次写入新的记录时可能会被利用上；但也有可能一直用不上而浪费。比如某个128Bytes大小的记录被删除后，接下来写入的记录一直大于128B，则这个128B的DeletedRecord不能有效的被利用。当删除很多时，可能产生很多不能重复利用的”存储碎片”，从而导致存储空间大量浪费；<strong>可通过compact命令整理碎片。</strong>该命令会持有数据库级别的锁。</p>
-<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">db.runCommand ( &#123; <span class="attr">compact</span>: <span class="string">'&lt;collection&gt;'</span> &#125; )</span><br></pre></td></tr></table></figure>
+<h3 id="objectId"><a href="#objectId" class="headerlink" title="objectId"></a>objectId</h3><p>MongoDB存储的文档必需有一个”_id“键，这个键可以是任意类型，默认是个ObjectId对象。objectId作为文档的唯一标识符。如果插入文档时，没有设置objectId，MongoDB客户端驱动会自动创建一个。</p>
+<p>object_id大小为12字节，是一个由24个十六进制数字组成的字符串。</p>
+<p><img src="https://raw.githubusercontent.com/okspy/image/master/mongodb/OBJECT_ID.png" alt="1566887583799"></p>
+<ul>
+<li><p>时间戳：占用前4个字节，从标准纪元开始的时间戳，单位为秒，</p>
+</li>
+<li><p>机器标识位：占用3个字节，是所在主机名的唯一标识，通常是机器名的hash值。</p>
+</li>
+<li><p>PID：产生 objectId的进程的ID</p>
+</li>
+<li><p>计数器： 前9个字节保证了同一秒钟不同机器不同进程的ObjectId是唯一的，最后三个字节用来确保同一秒同机器同进程的objectId的唯一性。所以每个进程同一秒最多允许产生<br>$$<br>（2^8)^3=16777216<br>$$<br>个不同的objectId。对于服务器来说，1600W个足够用了。</p>
+</li>
+</ul>
+<p>从objectId的设计可以看出，MongoDB的设计初衷就是用作分布式数据库，能够在副本集、分片环境下生成全局唯一id。</p>
 
-<p><strong>更新</strong></p>
-<p>更新跟删除类似，也有可能产生很多存储碎片</p>
-<ul>
-<li>更新的Record比原来小，可以直接复用现有的空间（原地更新）；多余的空间如果足够多，会将剩余空间插入到DeletedRecord链表；</li>
-<li>更新的Record比原来大，更新相当于删除 + 新写入，原来的空间会插入到DeletedRecord链表里。文档需要移动到文件中的其他位置，这种因更新导致的文档位置移动会严重降低写入性能，因为一旦文档移动，集合中的所有索引都要同步修改文档新的存储位置，<strong>可通过设置填充因子（paddingFactor）进行优化</strong>，比如：如果填充因子为2，一个大小为200字节的文档插入是，会自动在文档后填充100个字节的空间，这样在更新时，会使用第一种方式（更新的record比原来小）。</li>
-</ul>
-<p><strong>查询</strong></p>
-<p>没有索引的情况下，查询某个Record需要遍历整个集合，读取出符合条件的Record；如果经常需要根据每个纬度查询Record，则需要给集合建立索引以提供查询效率。</p>
-<h4 id="3-1-3-锁粒度"><a href="#3-1-3-锁粒度" class="headerlink" title="3.1.3 锁粒度"></a>3.1.3 锁粒度</h4><p>MMAPv1 3.0版本之前锁粒度是库，3.0版本后所粒度是集合，即表级锁，不支持事务，原子操作是文档的保存、修改、删除。</p>
-<h3 id="3-2-WiredTiger"><a href="#3-2-WiredTiger" class="headerlink" title="3.2 WiredTiger"></a>3.2 WiredTiger</h3><p>mongoDB 3.2设置wiredTiger为默认的存储引擎（之前版本默认MMAPv1），WiredTiger存储引擎负责将写操作写入cache（<strong>B树结构</strong>），满足条件后持久化（默认条件每隔60s或达到2GB）</p>
-<p>与MMAPv1一样，journal日志（<strong>预写式日志，write ahead log，WAL</strong>）用于数据恢复。对于write操作，首先被持久写入journal，然后在内存中保存变更数据，<strong>条件满足后提交一个新的检测点checkpoint</strong>，即检测点之前的数据只是在journal中持久存储，但并没有在mongodb的数据文件中持久化，延迟持久化可以提升磁盘效率，如果在提交checkpoint之前，mongodb异常退出，此后再次启动可以根据journal日志恢复数据。，如果60s内机器宕机，且未开启journal日志，会丢失这60s的数据。journal日志默认每100毫秒同步磁盘一次，每100M数据生成一个新的journal文件，journal默认使用了snappy压缩，检测点创建后，此前的journal日志即可清除。</p>
-<p><img src="https://raw.githubusercontent.com/okspy/image/master/mongodb/%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E.png" alt="1566802633253"></p>
-<h4 id="3-2-1-文件空间分配"><a href="#3-2-1-文件空间分配" class="headerlink" title="3.2.1 文件空间分配"></a>3.2.1 文件空间分配</h4><p>MMAP引擎中，集合和索引都以命名空间的方式混合存储在数据库文件中mydb.1、mydb.2等，同一个数据库文件存在多个集合的数据，例如mydb.1保存了集合c1、c2，即便删除了某个集合或索引，其占用的磁盘空间也会产生碎片难易清除。文件的存储级别是<strong>数据库级别</strong></p>
-<p>在WiredTiger中，文件的存储级别是<strong>集合和索引级别</strong>。将每个数据库中的所有集合和索引分别存储在单独的文件中，删除了集合或索引后，对应的文件自动清除，磁盘回收效率更高。</p>
-<p>data/db目录下的文件如下：</p>
-<p><img src="https://raw.githubusercontent.com/okspy/image/master/mongodb/%E6%96%87%E4%BB%B6%E7%A9%BA%E9%97%B4%E5%88%86%E9%85%8D1.png" alt="1566795516284"></p>
-<p>整体的目录结构如下图：</p>
-<p><img src="https://raw.githubusercontent.com/okspy/image/master/mongodb/%E7%9B%AE%E5%BD%95%E7%BB%93%E6%9E%84.png" alt="1566796884855"></p>
-<ul>
-<li>collection.wt存储集合信息，以编号不同区分，collection1.wt、collection2.wt</li>
-<li>index.wt存储索引信息，编号区分</li>
-<li>WiredTiger.lock定义锁操作</li>
-<li>WiredTiger.wt 存储collection.wt与index.wt的元数据</li>
-<li>WiredTiger.turtle 存储WiredTiger.wt 元数据</li>
-<li>journal 目录 存储journal日志</li>
-</ul>
-<h4 id="3-2-2-存储模型"><a href="#3-2-2-存储模型" class="headerlink" title="3.2.2 存储模型"></a>3.2.2 存储模型</h4><p>WiredTiger在执行写入任务时，不是直接写入到磁盘，首先写入的是cache，然后批量持久化，这也是MongoDB吃内存的主要原因，cache中使用B树保存数据，每个B树对应磁盘上的一个物理文件，树节点对应一个内存页、硬盘块，<strong>所以根节点与内部节点均会用于存储数据</strong>，目的是尽可能减少磁盘IO从而提高性能。</p>
-<p><img src="https://raw.githubusercontent.com/okspy/image/master/mongodb/WiredTiger%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84.png" alt="1566801831809"></p>
-<p>cache中的一个Page对应磁盘上的一个Extent（Mysql Innodb是1对4的关系），Extent大小为4K，存储了一系列键值对。</p>
-<p><img src="https://raw.githubusercontent.com/okspy/image/master/mongodb/WiredTiger-Page.png" alt="1566869294605"></p>
-<h5 id="3-2-2-1-更新、插入、删除"><a href="#3-2-2-1-更新、插入、删除" class="headerlink" title="3.2.2.1 更新、插入、删除"></a>3.2.2.1 更新、插入、删除</h5><ul>
-<li>遍历B树，找到待更新的页（如果cahce中没有热数据，从磁盘中获取，生成一个WT_ROW）</li>
-<li>如果有必要，生成预写日志</li>
-<li>在待更新的页执行更新、插入、删除操作</li>
-</ul>
-<p>当对某个键的值进行更新、删除时，将创建一个用于更新的结构，包含了事务id、已更改数据、指向后续更新的指针，之后的更新会将自己添加到前一个结构的末尾，随着时间的推移创建一个不同版本值的链式结构，N次更新组成长度为N的linkedlist。</p>
-<p>当进行插入时，生成一个skip linkedlist用于保存插入的信息，N次插入生成长度为N的保存了各skip linkedlist头信息的linkedlist—WT_INSERT_HEAD。</p>
-<h5 id="3-2-2-2-Copy-on-write"><a href="#3-2-2-2-Copy-on-write" class="headerlink" title="3.2.2.2 Copy on write"></a>3.2.2.2 Copy on write</h5><p>WiredTiger采用Copy on write的方式管理修改操作（insert、update、delete），修改操作会先缓存在cache里，持久化时，<strong>修改操作不会在原来的leaf page上进行，而是写入新分配的page，每次checkpoint都会产生一个新的Root Page</strong>。</p>
-<p><img src="https://raw.githubusercontent.com/okspy/image/master/mongodb/WireTiger%E6%95%B0%E6%8D%AE%E6%9B%B4%E6%96%B0.png" alt="1566804600903"></p>
-<p>与MMAPv1引擎类似，当一个文档被删除时，WiredTiger不会立即归还该空间，会在后续的删除、更新、插入操作中优先复用该空间，可能会存在碎片，但影响不大，如果要整理碎片，可以调用compact命令。</p>
-<h4 id="3-2-3-为什么使用B树而不是B-树"><a href="#3-2-3-为什么使用B树而不是B-树" class="headerlink" title="3.2.3 为什么使用B树而不是B+树"></a>3.2.3 为什么使用B树而不是B+树</h4><p><img src="https://raw.githubusercontent.com/okspy/image/master/mongodb/B%E6%A0%91.png" alt="img"></p>
-<p><img src="https://raw.githubusercontent.com/okspy/image/master/mongodb/B+%E6%A0%91.png" alt="img"></p>
-<p>B树与B+树的简要图如上，二者最大的区别就是B树所有节点都用来存储key+data，而B+树只有叶子节点存储key+data，根节点与中间节点保存的是key的副本，相应的页存储的是key+指针，所有 data 存储在叶节点导致查询时间复杂度固定为 log n。而B-树查询时间复杂度不固定，与 key 在树中的位置有关，最好为O(1)。</p>
-<p><strong>无论是MongoDB选择B树，还是Mysql的InnoDB、MyIsam引擎选择B+树，目的都是尽可能减少磁盘IO。</strong></p>
-<p>MongoDB是一种聚合型数据库，它组织数据的特点就是将经常访问的数据放在一块（同一个JSON下包含所有信息），对于单个查询能够在与数据库的一次交互中将所有数据全部取出来，对于上图中key为37的数据，无论是B树还是B+树，都是3次IO，而对于key为50的数据，使用B树只需要1次IO，使用B+树需要3次IO。</p>
-<p>而Mysql是关系型数据库，使用B+树提高根节点和内部节点存放的信息量（由于内节点无 data 域，每个节点能索引的范围更大更精确），从而减少查询次数，达到减小磁盘IO的目的。最重要的是，B+树由于数据全部存储在叶子节点，并且通过指针串在一起，这样就很容易的进行区间遍历甚至全部遍历，然而，MongoDB很少有区间访问的需求，也就没有这种磁盘预读机制的需求。</p>
-<h4 id="3-2-3-锁粒度"><a href="#3-2-3-锁粒度" class="headerlink" title="3.2.3 锁粒度"></a>3.2.3 锁粒度</h4><p>WiredTiger的锁粒度为文档，对应Mysql的行级锁。</p>
-<h4 id="3-2-4-事务"><a href="#3-2-4-事务" class="headerlink" title="3.2.4 事务"></a>3.2.4 事务</h4><p>mongoDB对一个文档的写操作，会产生三个动作：</p>
-<ul>
-<li>对存储数据的Btree执行写操作</li>
-<li>对存储索引的Btree执行写操作</li>
-<li>对oplog（option log，与预写日志不是一回事，一个是已发生的，一个是将要发生的）执行写操作</li>
-</ul>
-<p>MongoDB的单文档事务指：上述三个动作的更新是原子的，处于同一个事务中。不存在<strong>索引段中的某个RecordId，在数据段中找不到</strong>，也不存在<strong>一条记录的更改被应用，但是没有记录到oplog中</strong>, 反之亦然。</p>
-<p>MongoDB  4.0提供了事务API，开始支持事务操作。它的事务是基于快照SANPSHOT、MVCC（Multi-Version Concurrency Control，多版本并发控制）实现的。</p>
-<h5 id="3-2-4-1-sanpshot"><a href="#3-2-4-1-sanpshot" class="headerlink" title="3.2.4.1 sanpshot"></a>3.2.4.1 sanpshot</h5><p>snapshot即快照。事务开始时，对整个WiredTiger内部正在执行或将要执行的所有事务进行一次截屏，保存当时整个引擎所有事务的状态。</p>
-<p><img src="https://raw.githubusercontent.com/okspy/image/master/mongodb/WiredTiger%E4%BA%8B%E5%8A%A1.png" alt="1566873597953"></p>
-<p>snapshot_object保存了快照信息。</p>
-<ul>
-<li>snap_min 最小执行事务</li>
-<li>snap_max 最大执行事务</li>
-<li>snap_array 位于snap_min与snap_max之间正在执行的事务，是不可见的。</li>
-</ul>
-<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">snapshot_object = &#123;</span><br><span class="line">    snap_min=T1,</span><br><span class="line">    snap_max=T5,</span><br><span class="line">	snap_array=&#123;T1, T4, T5&#125;,</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+          
+        
+      
+    </div>
+    
+    
+    
 
-<p><strong>凡是出现在snap_array中或事务ID&gt;snap_max的事务均是不可见的。</strong>即便建立snapshot之后T1、T4、T5提交了，T6也无法访问的T1、T4、T5的修改。</p>
-<h5 id="2-2-4-2-MVCC"><a href="#2-2-4-2-MVCC" class="headerlink" title="2.2.4.2 MVCC"></a>2.2.4.2 MVCC</h5><p>MVCC基于事务ID和记录值实现一个链表，新的事务与相应的修改value，插入链表头部，链表中的节点定义抽象如下：</p>
-<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">wt_mvcc&#123;</span><br><span class="line">	transaction_id:    本次修改事务的ID	</span><br><span class="line">	value:             本次修改后的值</span><br><span class="line">    next;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+    
 
-<p>读取值时从链表头开始，根据snapshot来判断是否可读，如果不可读，向链表尾方向移动，直到找到第一个能够读的数据版本，下图中，读事务T5与读事务T3均会读到V1。</p>
-<p><img src="https://raw.githubusercontent.com/okspy/image/master/mongodb/MVCC.png" alt="1566880968502"></p>
-<h5 id="3-2-4-3-事务隔离"><a href="#3-2-4-3-事务隔离" class="headerlink" title="3.2.4.3 事务隔离"></a>3.2.4.3 事务隔离</h5><p>传统的数据库事务隔离分为:Read-Uncommited(未提交读)、Read-Commited(提交读)、Repeatable-Read(可重复读)和Serializable(串行化)，WiredTigerT引擎并没有按照传统的事务隔离实现这四个等级，而是基于snapshot的特点实现了下列事务隔离方式：</p>
-<ul>
-<li>Read-Uncommited</li>
-<li>Read-Commited</li>
-<li>snapshot-Isolation(快照隔离)</li>
-</ul>
-<p><strong>Read-Uncommited</strong></p>
-<p>又称为脏读，是最低的隔离级别，<strong>总是读取到系统中最新的修改（包括未提交）</strong>。WiredTiger的实现方式很简单，将snap_array置为空即可。在上图中，隔离级别设置为脏读后，事务T5读取到的值为V4。一般数据库不会设置成这种隔离方式，它违背了事务的ACID的特性。</p>
-<p><strong>Read-Commited</strong></p>
-<p>又称为幻读，<strong>总是读取到最新的、已提交的修改</strong>。这种隔离级别可能在一个长事务多次读取一个值的时候前后读到的值可能不一样。</p>
-<p>假设上图中的T5包含了两次读操作，中间sleep了2s，在这2s内T4提交了，则事务T5中，第一次读到的值为V1，第二次读到的值为V4。</p>
-<p><strong>snapshot-Isolation(快照隔离)</strong></p>
-<p>只在事务开始时生成一次快照，无论事务持续的过程中其他事务修改了几次值，该快照都不改变，<strong>所以值在整个事务执行过程中只有一个版本</strong>。</p>
-<p>事务T4的修改对T5不可见，如果T5也是一个写事务，在T5开始时，T4未提交，T5执行过程中，T4提交了，T5再去修改值，会产生失败回滚。这样做的目的是防止忽略不可见数据的修改。</p>
-<h6 id="与Mysql事务的区别"><a href="#与Mysql事务的区别" class="headerlink" title="与Mysql事务的区别"></a>与Mysql事务的区别</h6><p>通过上面对三种事务隔离方式的分析，<strong>WiredTiger并没有使用传统的事务独占锁和共享访问锁来保证事务隔离</strong>，而是通过对系统中<strong>写事务的snapshot截屏来实现</strong>。这样做的目的是在<strong>保证事务隔离的情况下又能提高系统事务并发的能力</strong>。</p>
-<h2 id="4-索引"><a href="#4-索引" class="headerlink" title="4 索引"></a>4 索引</h2><p>索引是特殊的数据结构，它以易于遍历的形式存储部分集合数据集。索引存储特定字段或字段集的值，按字段值排序。</p>
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/MongoDB系列（三）MongoDB索引/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="shipengyang">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="okspy">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/MongoDB系列（三）MongoDB索引/" itemprop="url">MongoDB系列（三）MongoDB索引</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-09-15T00:00:00+08:00">
+                2019-09-15
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/数据库/" itemprop="url" rel="index">
+                    <span itemprop="name">数据库</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h1 id="MongoDB索引"><a href="#MongoDB索引" class="headerlink" title="MongoDB索引"></a>MongoDB索引</h1><p>索引是特殊的数据结构，它以易于遍历的形式存储部分集合数据集。索引存储特定字段或字段集的值，按字段值排序。</p>
 <p>MongoDB的索引几乎与传统的关系型数据库索引一模一样，第二章提到的<code>_id</code>实际上也是一个索引，MongoDB的数据按照<code>_id</code>的顺序存储在内存页与磁盘块上。但是，<code>_id</code>与业务毫无关联，在业务相关的条件查询时，还是需要进行全表扫描才能找到对应页，效率并不高。</p>
 <ul>
 <li>为了避免性能瓶颈，可以根据常用的查询建立索引</li>
 <li>索引的值是按照一定的顺序排列的，因此，使用索引键对文档进行排序效率非常高。</li>
 </ul>
 <p>不过，使用索引也是有代价的，不仅会增加磁盘与内存的消耗，对于添加的每一个索引，每次写操作（插入、更新、删除）都会耗费更多时间，这是因为，数据发生变动时，还需要额外的开销更新索引。</p>
-<h3 id="4-1-聚簇索引与非聚簇索引"><a href="#4-1-聚簇索引与非聚簇索引" class="headerlink" title="4.1 聚簇索引与非聚簇索引"></a>4.1 聚簇索引与非聚簇索引</h3><p>磁盘上的数据某一时刻只能有一种排序方式，而聚簇索引的特点是：索引顺序与数据存储顺序一致，所以聚簇索引只能有一个。</p>
+<h2 id="聚簇索引与非聚簇索引"><a href="#聚簇索引与非聚簇索引" class="headerlink" title="聚簇索引与非聚簇索引"></a>聚簇索引与非聚簇索引</h2><p>在介绍索引之前，先了解下聚簇索引与非聚簇索引。<br>磁盘上的数据某一时刻只能有一种排序方式，而聚簇索引的特点是：索引顺序与数据存储顺序一致，所以聚簇索引只能有一个。</p>
 <p>《数据库原理》中对聚簇索引的定义：聚簇索引的叶子节点是数据节点，非聚簇索引的叶子节点仍然是索引节点，只不过有指向对应数据块的指针。</p>
 <p>所以Mysql的InnoDB引擎的主键索引是聚簇索引、MyIsam引擎使用的是非聚簇索引。</p>
 <p>MongoDB不会将<code>_id</code>索引与文档内容放在一起，所以MongoDB的<code>_id</code>索引不是聚簇索引，mogoDB将数据与索引分开存放，通过RecordId间接引用。假设为字段<code>”name“</code>创建了索引，主键<code>id</code>为主键索引，那么该集合就通过索引查找RecordId，再查找数据。</p>
 <p><img src="C:%5CUsers%5Cadmin%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5C1566960990983.png" alt="1566960990983"></p>
-<h3 id="4-2-主键索引"><a href="#4-2-主键索引" class="headerlink" title="4.2 主键索引"></a>4.2 主键索引</h3><p>前面提到的<code>_id</code>索引是默认的主键索引，与业务相关联的项不适合用作主键（难以保障全局唯一、非null），建议使用<code>_id</code>作为主键。</p>
-<h3 id="4-3-单字段索引"><a href="#4-3-单字段索引" class="headerlink" title="4.3 单字段索引"></a>4.3 单字段索引</h3><p>即对单个filed建立索引，也是常说的“普通索引”；建立索引时可以指定索引数据的order：正序还是倒序。MongoDB 3.0后的版本，使用<code>createIndex</code>、<code>ensureIndex</code>是一样的，均是创建索引的命令。</p>
+<h2 id="主键索引"><a href="#主键索引" class="headerlink" title="主键索引"></a>主键索引</h2><p>前面提到的<code>_id</code>索引是默认的主键索引，与业务相关联的项不适合用作主键（难以保障全局唯一、非null），建议使用<code>_id</code>作为主键。</p>
+<h2 id="单字段索引"><a href="#单字段索引" class="headerlink" title="单字段索引"></a>单字段索引</h2><p>即对单个filed建立索引，也是常说的“普通索引”；建立索引时可以指定索引数据的order：正序还是倒序。MongoDB 3.0后的版本，使用<code>createIndex</code>、<code>ensureIndex</code>是一样的，均是创建索引的命令。</p>
 <figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">db.mycollection.ensureIndex(&#123;<span class="string">"name"</span>:<span class="number">1</span>&#125;) <span class="comment">//对score字段建立索引、1表示正序、-1表示倒序</span></span><br><span class="line">db.mycollection.createIndex(&#123;<span class="string">"name"</span>:<span class="number">1</span>&#125;) <span class="comment">// MongoDB 3.0后的版本，可以使用createIndex</span></span><br></pre></td></tr></table></figure>
 
-<h3 id="4-4-复合索引"><a href="#4-4-复合索引" class="headerlink" title="4.4 复合索引"></a>4.4 复合索引</h3><p>两个或两个以上的键建立索引，可以减小检索的范围。复合索引与Mysql一样，也是按照左侧匹配规则，这里不赘述，主要介绍下复合索引与排序共用的情况。</p>
+<h2 id="复合索引"><a href="#复合索引" class="headerlink" title="复合索引"></a>复合索引</h2><p>两个或两个以上的键建立索引，可以减小检索的范围。复合索引与Mysql一样，也是按照左侧匹配规则，这里不赘述，主要介绍下复合索引与排序共用的情况。</p>
 <p>首先，在集合<code>”myc“</code>上创建一个复合索引：</p>
 <figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">db.myc.ensureIndex(&#123;<span class="string">"age"</span>:<span class="number">1</span>,<span class="string">"name"</span>:<span class="number">1</span>&#125;); <span class="comment">// 索引1</span></span><br></pre></td></tr></table></figure>
 
@@ -529,26 +547,26 @@
 <p>最后，具体使用哪种查询，使用<code>explain</code>关键字在shell中比较一下再做选择。</p>
 <figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">db.myc.find(&#123;<span class="string">"age"</span>:&#123;<span class="string">"$gte"</span>:<span class="number">21</span>, <span class="string">"$lte"</span>:<span class="number">30</span>&#125;&#125;).sort(&#123;<span class="string">"name"</span>:<span class="number">1</span>&#125;).hint(&#123;<span class="string">"age"</span>:<span class="number">1</span>,<span class="string">"name"</span>:<span class="number">1</span>&#125;).explain()[<span class="string">`millis`</span>]; \\获取查询<span class="number">1</span>耗时</span><br><span class="line"></span><br><span class="line">db.myc.find(&#123;<span class="string">"age"</span>:&#123;<span class="string">"$gte"</span>:<span class="number">21</span>, <span class="string">"$lte"</span>:<span class="number">30</span>&#125;&#125;).sort(&#123;<span class="string">"name"</span>:<span class="number">1</span>&#125;).hint(&#123;<span class="string">"age"</span>:<span class="number">1</span>,<span class="string">"name"</span>:<span class="number">1</span>&#125;).explain()[<span class="string">`millis`</span>]; \\获取查询<span class="number">2</span>耗时</span><br></pre></td></tr></table></figure>
 
-<h3 id="4-5-唯一索引"><a href="#4-5-唯一索引" class="headerlink" title="4.5 唯一索引"></a>4.5 唯一索引</h3><p>唯一索引用来确保集合的每一个文档的指定键都有唯一值，允许null值。例如：在集合mycollection中，给”name“键建立唯一索引，试图插入重复name的值时，会抛出异常，也会影响效率。</p>
+<h2 id="唯一索引"><a href="#唯一索引" class="headerlink" title="唯一索引"></a>唯一索引</h2><p>唯一索引用来确保集合的每一个文档的指定键都有唯一值，允许null值。例如：在集合mycollection中，给”name“键建立唯一索引，试图插入重复name的值时，会抛出异常，也会影响效率。</p>
 <figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">db.mycollection.ensureIndex(&#123;<span class="string">"name"</span>:<span class="number">1</span>&#125;, &#123;<span class="string">"unique"</span>:<span class="literal">true</span>&#125;);</span><br></pre></td></tr></table></figure>
 
 <p>使用场景：应对<strong>偶尔</strong>可能会出现重复的键重复问题，而不是在运行时对重复键进行过滤。比如：为避免消息重复消费，可以为”消息id“键创建唯一索引。</p>
-<h4 id="4-5-1-复合唯一索引"><a href="#4-5-1-复合唯一索引" class="headerlink" title="4.5.1 复合唯一索引"></a>4.5.1 复合唯一索引</h4><p>复合的唯一索引，单个键的值可以相同，<strong>但所有键的组合值必须是唯一的</strong>。</p>
+<h3 id="复合唯一索引"><a href="#复合唯一索引" class="headerlink" title="复合唯一索引"></a>复合唯一索引</h3><p>复合的唯一索引，单个键的值可以相同，<strong>但所有键的组合值必须是唯一的</strong>。</p>
 <p>例如，如果有一个{”username”:1, “age”:100}上的唯一索引，下面的插入是合法的，不会报错。</p>
 <figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">db.mycollection.insert(&#123;<span class="string">"username"</span>:<span class="string">"bob"</span>&#125;);</span><br><span class="line">db.mycollection.insert(&#123;<span class="string">"username"</span>:<span class="string">"bob"</span>, <span class="string">"age"</span>:<span class="number">23</span>&#125;);</span><br><span class="line">db.mycollection.insert(&#123;<span class="string">"username"</span>:<span class="string">"fred"</span>, <span class="string">"age"</span>:<span class="number">23</span>&#125;);</span><br></pre></td></tr></table></figure>
 
-<h4 id="4-5-2-去除重复"><a href="#4-5-2-去除重复" class="headerlink" title="4.5.2 去除重复"></a>4.5.2 去除重复</h4><p>在已有的集合上创建唯一索引时，可能会失败，因为集合中可能已经存在重复的值了。此时，有三种办法：</p>
+<h3 id="去除重复"><a href="#去除重复" class="headerlink" title="去除重复"></a>去除重复</h3><p>在已有的集合上创建唯一索引时，可能会失败，因为集合中可能已经存在重复的值了。此时，有三种办法：</p>
 <ul>
 <li><p>找出重复数据，想办法去除</p>
 </li>
-<li><p>直接删除重复的值，创建索引时使用<code>”dropDups“</code>选项，如果遇到重复的值，只会保留第一个值。正是由于这种不确定性（不确定哪条记录被删除），MongoDB 3.0版本以后移除了该选项。</p>
+<li><p>直接删除重复的值，创建索引时使用<code>”dropDups“</code>选项，如果遇到重复的值，只会保留第一个值。正是由于这种不确定性（不确定哪条记录被删除），MongoDB 3.0以后移除了该选项。</p>
 </li>
 <li><p>新建一个集合，建立索引，然后把旧集合的数据拷贝至新集合</p>
 <figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">db.mycollection.ensureIndex(&#123;<span class="string">"username"</span>:<span class="string">"bob"</span>&#125;,&#123;<span class="string">"unique"</span>:<span class="literal">true</span>,<span class="string">"dropDups"</span>:<span class="literal">true</span>&#125;)</span><br></pre></td></tr></table></figure>
 
 </li>
 </ul>
-<h3 id="4-6-稀疏索引"><a href="#4-6-稀疏索引" class="headerlink" title="4.6 稀疏索引"></a>4.6 稀疏索引</h3><p>唯一索引会把null看做值，假如集合中有以下两个文档，假设对键<code>”age“</code>建立唯一索引，则文档2中的<code>&quot;age&quot;</code>就是<code>null</code></p>
+<h2 id="稀疏索引"><a href="#稀疏索引" class="headerlink" title="稀疏索引"></a>稀疏索引</h2><p>唯一索引会把null看做值，假如集合中有以下两个文档，假设对键<code>”age“</code>建立唯一索引，则文档2中的<code>&quot;age&quot;</code>就是<code>null</code></p>
 <figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">&#123;<span class="string">"name"</span>:<span class="string">"bob"</span>, <span class="string">"age"</span>:<span class="number">23</span>&#125; <span class="comment">// 文档1</span></span><br><span class="line">&#123;<span class="string">"name"</span>:<span class="string">"bob"</span>&#125; <span class="comment">// 文档2</span></span><br></pre></td></tr></table></figure>
 
 <p>现在想新增文档3，是无法添加的，因为文档3中<code>”age“</code>也是<code>null</code>，与文档2冲突了，违反了唯一性。</p>
@@ -565,7 +583,7 @@
 <p>查询结果如下，查询2没有查询到文档，这是因为<strong>建立了稀疏索引后，查询只根据索引查询，不再全表扫描，因此，会遗漏那些没有索引键的文档。</strong>如果一定要获取与查询1相同的结果，通过<code>hint</code>命令指明不使用索引，执行全表扫描。</p>
 <figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 查询1的查询结果</span></span><br><span class="line">&#123;<span class="string">"name"</span>:<span class="string">"bob"</span>&#125;</span><br><span class="line">&#123;<span class="string">"name"</span>:<span class="string">"bob"</span>, <span class="string">"addresss"</span>:<span class="string">"sz"</span>&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 查询2的查询结果</span></span><br><span class="line"><span class="comment">// nothing...</span></span><br></pre></td></tr></table></figure>
 
-<h3 id="4-7-TTL索引"><a href="#4-7-TTL索引" class="headerlink" title="4.7 TTL索引"></a>4.7 TTL索引</h3><p>TTL（Time-to-live index）索引指具有生命周期的索引，这种索引会为文档设置一个超时时间，一旦文档存活时间超过该时间就会被删除。这种类型的索引可以用在：消息日志、服务器会话等具有时效性的场景。</p>
+<h2 id="TTL索引"><a href="#TTL索引" class="headerlink" title="TTL索引"></a>TTL索引</h2><p>TTL（Time-to-live index）索引指具有生命周期的索引，这种索引会为文档设置一个超时时间，一旦文档存活时间超过该时间就会被删除。这种类型的索引可以用在：消息日志、服务器会话等具有时效性的场景。</p>
 <p>在<code>&quot;createdTime&quot;</code>字段上创建TTL索引：</p>
 <figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">db.mycollection.createIndex(&#123;<span class="string">"createdTime"</span>:<span class="number">1</span>&#125;, <span class="string">"expireAfterSecs"</span>: <span class="number">60</span>*<span class="number">60</span>*<span class="number">24</span>)</span><br></pre></td></tr></table></figure>
 
@@ -573,22 +591,22 @@
 <p>​        记录被删除的时间点=<code>&quot;createdTime&quot;</code>字段对应的时间点+<code>&quot;expireAfterSecs&quot;</code>对应的单位为秒的时间段</p>
 <p>为了避免活跃的会话被删除，可以在会话上有活动发生时，更新<code>&quot;createdTime&quot;</code>为当前时间。</p>
 <p>一个集合上可以创建多个TTL索引。</p>
-<h3 id="4-8-全文索引"><a href="#4-8-全文索引" class="headerlink" title="4.8 全文索引"></a>4.8 全文索引</h3><p>与Mysql一样，MongoDB也支持全文检索。创建全文索引的开销较大，MongoDB本身就很耗内存，在一个操作频繁的集合上创建全文索引更容易导致内存不足，全文本索引的集合写入性能更差、分片时迁移速度更慢，一般的，如果不是特别强烈的业务需要，不建议使用全文索引。</p>
+<h2 id="全文索引"><a href="#全文索引" class="headerlink" title="全文索引"></a>全文索引</h2><p>与Mysql一样，MongoDB也支持全文检索。创建全文索引的开销较大，MongoDB本身就很耗内存，在一个操作频繁的集合上创建全文索引更容易导致内存不足，全文本索引的集合写入性能更差、分片时迁移速度更慢，一般的，如果不是特别强烈的业务需要，不建议使用全文索引。</p>
 <p>在<code>&quot;mytext&quot;</code>字段上创建全文索引：</p>
 <figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">db.mycollection.ensureIndex(&#123;<span class="string">"mytext"</span>:<span class="string">"text"</span>&#125;)</span><br></pre></td></tr></table></figure>
 
 <p>使用全文索引检索关键字<code>&quot;keyword&quot;</code>：</p>
 <figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">db.mycollection.find(&#123;<span class="attr">$text</span>:&#123;<span class="attr">$search</span>:<span class="string">"keyword"</span>&#125;&#125;)</span><br></pre></td></tr></table></figure>
 
-<h3 id="4-9-地理空间索引"><a href="#4-9-地理空间索引" class="headerlink" title="4.9 地理空间索引"></a>4.9 地理空间索引</h3><p>MongoDB支持几种类型的索引，最常见的是2dsphere索引（用于球面图）和2d索引（用于平面图）。这里只简单介绍下这两种索引的创建：</p>
+<h2 id="地理空间索引"><a href="#地理空间索引" class="headerlink" title="地理空间索引"></a>地理空间索引</h2><p>MongoDB支持几种类型的索引，最常见的是2dsphere索引（用于球面图）和2d索引（用于平面图）。这里只简单介绍下这两种索引的创建：</p>
 <figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">db.mycollection.ensureIndex(&#123;<span class="string">"myloc"</span>:<span class="string">"2dsphere"</span>&#125;)</span><br><span class="line">db.mycollection.ensureIndex(&#123;<span class="string">"myloc"</span>:<span class="string">"2d"</span>&#125;)</span><br></pre></td></tr></table></figure>
 
-<h3 id="4-10-优化"><a href="#4-10-优化" class="headerlink" title="4.10 优化"></a>4.10 优化</h3><p>如果数据库中已有大量数据，此时建立索引将会导致大量的IO操作（内存，磁盘读写），耗时较长。MongoDB提供了2种方式：foreground和background。</p>
+<h2 id="优化"><a href="#优化" class="headerlink" title="优化"></a>优化</h2><p>如果数据库中已有大量数据，此时建立索引将会导致大量的IO操作（内存，磁盘读写），耗时较长。MongoDB提供了2种方式：foreground和background。</p>
 <ul>
 <li>foreground即前台操作，它会阻塞用户对数据的读写操作直到index构建完毕，即任何需要获取read、write锁的操作都会阻塞，默认情况下为foreground；</li>
 <li>background即后台模式，不阻塞数据读写操作，独立的后台线程异步构建索引，此时仍然允许对数据的读写操作；<strong>其中background比foreground更加耗时。</strong></li>
 </ul>
-<h4 id="4-10-1-查询优化"><a href="#4-10-1-查询优化" class="headerlink" title="4.10.1 查询优化"></a>4.10.1 查询优化</h4><ul>
+<h3 id="查询优化"><a href="#查询优化" class="headerlink" title="查询优化"></a>查询优化</h3><ul>
 <li><p>对频繁访问的查询，尽量使用覆盖索引，如果一个索引包含（或者说覆盖）所有需要查询的数据，就称为“覆盖索引”，使用覆盖索引时，需要强制不显示objectId字段。</p>
 <figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">db.mycollection.createIndex(&#123;<span class="string">"name"</span>, <span class="number">1</span>&#125;)</span><br><span class="line">db.mycollection.find(&#123;<span class="string">"name"</span>:bob, <span class="string">"_id"</span>:<span class="number">0</span>&#125;) <span class="comment">// 0表示不显示该字段</span></span><br></pre></td></tr></table></figure>
 </li>
@@ -601,13 +619,155 @@
 <li><p>使用explain对比分析多种查询方式的性能</p>
 </li>
 </ul>
-<h4 id="4-10-2-写操作优化"><a href="#4-10-2-写操作优化" class="headerlink" title="4.10.2 写操作优化"></a>4.10.2 写操作优化</h4><ul>
+<h3 id="写操作优化"><a href="#写操作优化" class="headerlink" title="写操作优化"></a>写操作优化</h3><ul>
 <li>尽量不要创建过多的索引，索引会增加该集合写入、更新、删除的开销，因为要额外维护索引</li>
 <li>合理设置journal相关参数，journal日志实现日志预写功能，开启journal保证了数据持久化，但也会存在一定的性能消耗，合理的设置commitIntercalMs控制journal写入磁盘的频率，该参数过大，影响MongoDB写操作的性能，该参数过小，MongoDB意外宕机期间预写日志未持久化的可能增大。</li>
 </ul>
-<h2 id="5-副本集"><a href="#5-副本集" class="headerlink" title="5 副本集"></a>5 副本集</h2><p>副本集是一组服务器，其中有一个主服务器(primary)，用于处理客户端请求，还有多个备用服务器(secondary)，用于保存主服务器的数据副本，如果主服务器崩溃了，备份服务器会自动选举出一个新的主服务器。</p>
+<p>## </p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/MongoDB系列（四）MongoDB副本集与分片/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="shipengyang">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="okspy">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/MongoDB系列（四）MongoDB副本集与分片/" itemprop="url">MongoDB系列（四）MongoDB副本集与分片</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-09-15T00:00:00+08:00">
+                2019-09-15
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/数据库/" itemprop="url" rel="index">
+                    <span itemprop="name">数据库</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h1 id="副本集"><a href="#副本集" class="headerlink" title="副本集"></a>副本集</h1><p>副本集是一组服务器，其中有一个主服务器(primary)，用于处理客户端请求，还有多个备用服务器(secondary)，用于保存主服务器的数据副本，如果主服务器崩溃了，备份服务器会自动选举出一个新的主服务器。</p>
 <p>一般的，只有主服务器才会用作写操作，备用服务器最多支持读操作，甚至读写均不支持，只用来做备份。</p>
-<h3 id="5-1-大多数"><a href="#5-1-大多数" class="headerlink" title="5.1 大多数"></a>5.1 大多数</h3><p>副本集中有一个很重要的概念是”大多数“，选择主节点时由”大多数“决定，主节点只有在得到”大多数“支持时才能继续作为主节点，这里的”大多数“被定义为副本集中一半以上的成员。它是动态变化的，如果某一个节点挂了，那么”大多数“就有可能发送变化，举个例子：</p>
+<h2 id="大多数"><a href="#大多数" class="headerlink" title="大多数"></a>大多数</h2><p>副本集中有一个很重要的概念是”大多数“，选择主节点时由”大多数“决定，主节点只有在得到”大多数“支持时才能继续作为主节点，这里的”大多数“被定义为副本集中一半以上的成员。它是动态变化的，如果某一个节点挂了，那么”大多数“就有可能发送变化，举个例子：</p>
 <table>
 <thead>
 <tr>
@@ -654,7 +814,7 @@
 <li>添加一个仲裁节点，只用来做仲裁，不用来做备份，放置在数据中心C，这样任何一个数据中心的服务器都可以满足”大多数“的条件，这样做的缺点是：将服务器分布到三个地方。</li>
 </ul>
 <p><img src="https://raw.githubusercontent.com/okspy/image/master/mongodb/%E5%89%AF%E6%9C%AC%E9%9B%86-%E4%BB%B2%E8%A3%81.png" alt="1566906750134"></p>
-<h3 id="5-2-选举机制"><a href="#5-2-选举机制" class="headerlink" title="5.2 选举机制"></a>5.2 选举机制</h3><p>当一个备份节点A无法与主节点连通时，它就会请求其他的副本集成员将自己选举为主节点。其他副本集成员会进行以下检查：</p>
+<h2 id="选举机制"><a href="#选举机制" class="headerlink" title="选举机制"></a>选举机制</h2><p>当一个备份节点A无法与主节点连通时，它就会请求其他的副本集成员将自己选举为主节点。其他副本集成员会进行以下检查：</p>
 <ul>
 <li>自身能否与主节点连通</li>
 <li>通过比较A的oplog与自身的oplog，确定A节点的数据是否最新</li>
@@ -673,7 +833,7 @@
 <li>也可以使驱动程序创建一个直接连接到目标备用节点用作读操作（而不是连接到整个副本集）</li>
 <li>甚至部分数据从主节点读另一部分从备用节点读。</li>
 </ul>
-<h3 id="5-3-心跳"><a href="#5-3-心跳" class="headerlink" title="5.3 心跳"></a>5.3 心跳</h3><p>每个节点都需要知道其他成员的状态，用来确定下列信息：</p>
+<h2 id="心跳"><a href="#心跳" class="headerlink" title="心跳"></a>心跳</h2><p>每个节点都需要知道其他成员的状态，用来确定下列信息：</p>
 <ul>
 <li>哪个是主节点</li>
 <li>哪个挂掉了</li>
@@ -681,7 +841,7 @@
 <li>是否有比主节点优先级更高的节点</li>
 </ul>
 <p>为了维护集合的最新视图，每个成员每隔2s就会向其他成员发送一次心跳，心跳请求的信息量非常小，用来检查每个成员的状态，获取简要信息。</p>
-<h4 id="5-3-1-节点状态"><a href="#5-3-1-节点状态" class="headerlink" title="5.3.1 节点状态"></a>5.3.1 节点状态</h4><ul>
+<h3 id="节点状态"><a href="#节点状态" class="headerlink" title="节点状态"></a>节点状态</h3><ul>
 <li>STARTUP                       节点刚刚启动，还未加载副本集配置</li>
 <li>STARTUP2                     节点加载副本集配置，进行初始化同步</li>
 <li>RECOVERING                初始化完成，进行检查以确保自身处于有效状态，当节点与其他节点脱节时，也会进入该状态，这时，这个成员处于无效状态，需要重更新同步（不是初始化同步，不过于初始化同步动作是一样的，都是同步oplog），同步完成后，回到正常状态（主节点状态、备份节点状态）</li>
@@ -694,24 +854,24 @@
 <li>ROLLBACK                     回滚，主节点执行一个写操作后挂掉了，备份节点没有复制该操作，新的主节点也会漏掉该操作，旧的主节点重新上线后，会回滚该操作，然后重新同步。</li>
 <li>FATAL                             节点发生不可挽回的错误，也不再尝试恢复正常，这是应该重启该节点、重新同步。</li>
 </ul>
-<h2 id="6-分片"><a href="#6-分片" class="headerlink" title="6 分片"></a>6 分片</h2><p>分片（sharding）是指将数据拆分，将其分散在不同的机器上的过程。分片可以分为：</p>
+<h1 id="分片"><a href="#分片" class="headerlink" title="分片"></a>分片</h1><p>分片（sharding）是指将数据拆分，将其分散在不同的机器上的过程。分片可以分为：</p>
 <ul>
 <li>手动分片（manual sharding）</li>
 <li>自动分片（autosharing）</li>
 </ul>
 <p>几乎所有的数据库都支持手动分片，应用维护与各个服务器之间的连接，每个连接是完全独立的，由应用管理数据的路由规则，这种方式的缺点是：难以维护、向集群新增节点或删除节点都很麻烦、调整分布以及负载模式也不轻松，因此，MongoDB提供了自动分片机制。</p>
-<h3 id="6-1-基于Mongos的自动分片"><a href="#6-1-基于Mongos的自动分片" class="headerlink" title="6.1 基于Mongos的自动分片"></a>6.1 基于Mongos的自动分片</h3><p>MongoDB支持自动分片，使得数据库架构对应用不可见，对于应用而言，好像始终在使用一台单机的MongoDB服务器一样，同时，MongoDB自动处理数据在分片上的分布，也更加容易新增或删除节点。</p>
+<h2 id="基于Mongos的自动分片"><a href="#基于Mongos的自动分片" class="headerlink" title="基于Mongos的自动分片"></a>基于Mongos的自动分片</h2><p>MongoDB支持自动分片，使得数据库架构对应用不可见，对于应用而言，好像始终在使用一台单机的MongoDB服务器一样，同时，MongoDB自动处理数据在分片上的分布，也更加容易新增或删除节点。</p>
 <p><img src="https://raw.githubusercontent.com/okspy/image/master/mongodb/%E5%88%86%E7%89%87.png" alt="img"></p>
 <p>Mongos作为分片集群的访问入口，所有的请求都由mongos来路由、分发、合并，这些动作对客户端驱动透明，用户连接mongos就像连接mongod一样使用，mongos可以是一个或多个，一般部署两个做高可用即可。</p>
 <p>Mongos会根据请求类型及片键将请求路由到对应的分片</p>
-<h4 id="6-1-1-查询请求"><a href="#6-1-1-查询请求" class="headerlink" title="6.1.1 查询请求"></a>6.1.1 查询请求</h4><ul>
+<h3 id="查询请求"><a href="#查询请求" class="headerlink" title="查询请求"></a>查询请求</h3><ul>
 <li>查询请求不包含片键，则必须将查询分发到所有的分片，然后合并查询结果返回给客户端</li>
 <li>查询请求包含片键，则直接根据片键计算出需要查询的块（chunk），向对应的分片发送查询请求</li>
 </ul>
-<h4 id="6-1-2-插入请求"><a href="#6-1-2-插入请求" class="headerlink" title="6.1.2 插入请求"></a>6.1.2 插入请求</h4><p>写操作必须包含片键，mongos根据片键算出文档应该存储到哪个chunk，然后将写请求发送到chunk所在的分片。</p>
-<h4 id="6-1-3-更新-删除请求"><a href="#6-1-3-更新-删除请求" class="headerlink" title="6.1.3 更新/删除请求"></a>6.1.3 更新/删除请求</h4><p>更新、删除请求的查询条件必须包含片键或者<code>_id</code>，如果是包含片键，则直接路由到指定的chunk，如果只包含<code>_id</code>，则需将请求发送至所有的分片。</p>
-<h4 id="6-1-4-其他命令请求"><a href="#6-1-4-其他命令请求" class="headerlink" title="6.1.4 其他命令请求"></a>6.1.4 其他命令请求</h4><p>除增删改查外的其他命令请求处理方式都不尽相同，有各自的处理逻辑，比如listDatabases命令，会向每个分片转发listDatabases请求，然后将结果进行合并。</p>
-<h3 id="6-2-何时分片"><a href="#6-2-何时分片" class="headerlink" title="6.2 何时分片"></a>6.2 何时分片</h3><p>通常，不必太早分片，因为分片不仅会增加部署的复杂度、还要求做出设计决策，而且该决策在以后很难再改。</p>
+<h3 id="插入请求"><a href="#插入请求" class="headerlink" title="插入请求"></a>插入请求</h3><p>写操作必须包含片键，mongos根据片键算出文档应该存储到哪个chunk，然后将写请求发送到chunk所在的分片。</p>
+<h3 id="更新-删除请求"><a href="#更新-删除请求" class="headerlink" title="更新/删除请求"></a>更新/删除请求</h3><p>更新、删除请求的查询条件必须包含片键或者<code>_id</code>，如果是包含片键，则直接路由到指定的chunk，如果只包含<code>_id</code>，则需将请求发送至所有的分片。</p>
+<h3 id="其他命令请求"><a href="#其他命令请求" class="headerlink" title="其他命令请求"></a>其他命令请求</h3><p>除增删改查外的其他命令请求处理方式都不尽相同，有各自的处理逻辑，比如listDatabases命令，会向每个分片转发listDatabases请求，然后将结果进行合并。</p>
+<h2 id="何时分片"><a href="#何时分片" class="headerlink" title="何时分片"></a>何时分片</h2><p>通常，不必太早分片，因为分片不仅会增加部署的复杂度、还要求做出设计决策，而且该决策在以后很难再改。</p>
 <p>另外，不能太晚分片，因为在一个过载的系统上不停机进行分片是非常困难的。</p>
 <p>分片的目的：</p>
 <ul>
@@ -721,14 +881,14 @@
 <li>处理单个MongoDB服务器无法承受的吞吐量</li>
 </ul>
 <p>随着不断增加分片的数量，系统性能大致会呈线性增长，但是，如果从一个未分片的系统转换为只有几个分片的系统，性能通常会有所下降。由于迁移数据、维护元数据、路由等开销，少量分片的系统与未分片的系统相比，通常延迟更大，吞吐量甚至更小。<strong>一般的，至少应该创建3个或以上的分片</strong>。</p>
-<h3 id="6-3-选择片键"><a href="#6-3-选择片键" class="headerlink" title="6.3 选择片键"></a>6.3 选择片键</h3><p>使用分片时，最重要、最困难的任务时选择数据的分发方式。对集合分片时，要选择一个或两个字段用于拆分数据。这个键（或这些键）称为片键。一旦拥有多个分片，再修改片键几乎是不可能的，所以必需在一开始就确定好片键。</p>
+<h2 id="选择片键"><a href="#选择片键" class="headerlink" title="选择片键"></a>选择片键</h2><p>使用分片时，最重要、最困难的任务时选择数据的分发方式。对集合分片时，要选择一个或两个字段用于拆分数据。这个键（或这些键）称为片键。一旦拥有多个分片，再修改片键几乎是不可能的，所以必需在一开始就确定好片键。</p>
 <p>最常见的片键有三种：</p>
 <ul>
 <li>升序片键（ascending key）</li>
 <li>随机分发的片键（random key）</li>
 <li>基于位置的片键（location-based key）</li>
 </ul>
-<h4 id="6-3-1-升序片键"><a href="#6-3-1-升序片键" class="headerlink" title="6.3.1 升序片键"></a>6.3.1 升序片键</h4><p>升序片键有点类似于<code>“data“</code>字段或<code>_id</code>字段，是一种会随着时间稳定增长的字段。</p>
+<h3 id="升序片键"><a href="#升序片键" class="headerlink" title="升序片键"></a>升序片键</h3><p>升序片键有点类似于<code>“data“</code>字段或<code>_id</code>字段，是一种会随着时间稳定增长的字段。</p>
 <p>假设已存在一个集合，有5百万条数据，以简化的<code>_id</code>（实际<code>_id</code>是24个16进制字符组成，这里简化便于理解）建立三个分片0001-0003，集合根据<code>_id</code>拆分为多个范围的块，<code>$maxKey</code>指正无穷，<code>5000000-&gt;$maxKey</code>是一个最大块。之后插入的数据都会在最大块中，最大块不是无限大的，它会继续拆分成多个小块，不过还是有以下缺点：</p>
 <ul>
 <li>会导致之后所有的写操作均被路由至分片0003中</li>
@@ -736,12 +896,12 @@
 </ul>
 <p>优点是：很好的满足范围查询的请求，比如想查询范围在2500000~2500010的文档，mongos直接路由至分片0002就能查询出所有符合条件的文档。</p>
 <p><img src="https://raw.githubusercontent.com/okspy/image/master/mongodb/%E5%8D%87%E5%BA%8F%E5%88%86%E7%89%87.png" alt="1566993777773"></p>
-<h4 id="6-3-2-随机分发的片键"><a href="#6-3-2-随机分发的片键" class="headerlink" title="6.3.2 随机分发的片键"></a>6.3.2 随机分发的片键</h4><p>随机分发的片键可以是用户名、邮件地址、设备id、md5散列值等没有规律的键。</p>
+<h3 id="随机分发的片键"><a href="#随机分发的片键" class="headerlink" title="随机分发的片键"></a>随机分发的片键</h3><p>随机分发的片键可以是用户名、邮件地址、设备id、md5散列值等没有规律的键。</p>
 <p>假设片键是0-1之间的随机数，数据的随机性意味着新插入的数据会比较均衡的分发至不同的块中，因此，各分片的增长速度大致相同，这就减少了需要进行迁移的次数。</p>
 <p>随机分发片键的缺点：范围查询要分发到后端所有的分片才能找出满足条件的文档</p>
 <p><img src="https://raw.githubusercontent.com/okspy/image/master/mongodb/%E9%9A%8F%E6%9C%BA%E5%88%86%E5%8F%91%E7%9A%84%E7%89%87%E9%94%AE.png" alt="1566995020969"></p>
-<h4 id="6-3-3-基于位置的片键"><a href="#6-3-3-基于位置的片键" class="headerlink" title="6.3.3 基于位置的片键"></a>6.3.3 基于位置的片键</h4><p>片键是用户IP、经纬度、地址等，数据会依据这个位置进行分组，与该位置接近的文档会保存在同一个范围的块中，优点是可以将数据与相关联的用户、相关联的数据保存在一起。</p>
-<h3 id="6-4-片键策略"><a href="#6-4-片键策略" class="headerlink" title="6.4 片键策略"></a>6.4 片键策略</h3><p>好的片键策略应该拥有如下特性：</p>
+<h3 id="基于位置的片键"><a href="#基于位置的片键" class="headerlink" title="基于位置的片键"></a>基于位置的片键</h3><p>片键是用户IP、经纬度、地址等，数据会依据这个位置进行分组，与该位置接近的文档会保存在同一个范围的块中，优点是可以将数据与相关联的用户、相关联的数据保存在一起。</p>
+<h2 id="片键策略"><a href="#片键策略" class="headerlink" title="片键策略"></a>片键策略</h2><p>好的片键策略应该拥有如下特性：</p>
 <ul>
 <li>key 分布足够离散 </li>
 <li>写请求均匀分布</li>
@@ -770,6 +930,272 @@
 <p>同一个设备的数据能够根据时间戳进一步分散到多个chunk，根据deviceId查询时间范围的数据，能够利用复合索引来完成，性能是最优的，不过前提是<code>deviceId</code>无明显规则。</p>
 </li>
 </ul>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/ MongoDB系列（二）MongoDB存储引擎/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="shipengyang">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="okspy">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/ MongoDB系列（二）MongoDB存储引擎/" itemprop="url">MongoDB系列（二）MongoDB存储引擎</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-09-15T00:00:00+08:00">
+                2019-09-15
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/数据库/" itemprop="url" rel="index">
+                    <span itemprop="name">数据库</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p>在MongoDB 2.6版本之前（包括2.6），只有一种存储引擎：MMAP（Memory mapping，内存映射引擎）。MongoDB 3.0以后，MMAP升级为MMAPv1， 同时提供了插件式引擎API，引入wiredTiger，mongoDB 3.2默认使用WiredTiger引擎，MongoDB 4.0版本删除了MMAP引擎。</p>
+<h1 id="MMAPv1引擎"><a href="#MMAPv1引擎" class="headerlink" title="MMAPv1引擎"></a>MMAPv1引擎</h1><p>常规的文件系统操作（调用read等函数）为了提高读写效率和保护磁盘，采用的是页缓存机制，读文件时需要先将文件页从磁盘拷贝至页缓存中，页缓存处在内核空间，不能被用户进程直接寻址，还需要将页缓存中的数据再次拷贝到内存对应的用户空间中，所以需要通过两次数据拷贝的过程，才能完成进程对文件内容的获取。</p>
+<p>在MMAP操作文件时，创建新的虚拟存储区域，建立文件磁盘地址与虚拟地址的映射关系，<strong>此时MMAP只是在虚拟内存分配了地址空间，所以32位的机器，最多支持2GB的文件映射</strong>。之后访问数据时，通过已建立好的映射关系,只使用一次数据拷贝，就从磁盘中将数据传入内存的用户空间中，供进程使用。</p>
+<p><img src="https://raw.githubusercontent.com/okspy/image/master/mongodb/MMAP%E6%98%A0%E5%B0%84.png" alt="img"></p>
+<p>在MongoDB的MMAPv1引擎机制中，服务器启动时，其内存对所有数据文件进行映射，接下来<strong>完全由操作系统负责将数据刷新到磁盘，以及管理内存中数据页的交换</strong>。</p>
+<h2 id="MMAPv1引擎的命名空间与区段"><a href="#MMAPv1引擎的命名空间与区段" class="headerlink" title="MMAPv1引擎的命名空间与区段"></a>MMAPv1引擎的命名空间与区段</h2><p>MMAPv1引擎中，每个数据库由一个.ns文件和若干数据文件组成，数据文件从0开始编号，mydb.0、mydb.1、mydb.2等，文件大小从64MB起，依次倍增，最大为2GB。这一特性使得较小的数据库不会浪费过多的空间，而较大的数据库可使用连续的磁盘空间。图中，mydb.1、mydb.2、mydb.3（为便于理解，此处省略了mydb.0）分别是数据库mydb的三个数据文件，mydb.ns的文件用于保存mydb数据库的命名空间元数据，图中未给出。</p>
+<p>每个数据库包含多个命名空间（namespace），存放在.ns文件中，单个命名空间128字节，数据库按照命名空间进行组织，每个命名空间中存放特定集合的数据，<strong>集合中的文档、索引都拥有自己的命名空间</strong>。mydb.ns文件实际是一个hash表，用于快速定位某个namespace的起始位置。</p>
+<p>如下图，数据库mydb包含了两个集合c1、c2，对应<strong>两个命名空间mydb.c1、mydb.c2</strong>，mydb.$freelist是一个特殊的命名空间，用于跟踪记录不再使用的区段（如被删除的集合或索引所在的区段），最后，还有一个预分配命名空间。</p>
+<p>每个命名空间的数据可以在磁盘上分为几组数据，即区段。这几个区段在磁盘上未必是连续的（图例中不连续）。</p>
+<p>MongoDB也会预分配数据文件，数据文件一旦被填满，就开始预分配，这意味着MongoDB服务器总会为每个数据库维护一个额外的空白数据文件（如图中的mydb.3），以提前避免文件分配失败。使用 <code>-- noprealloc</code>选项可以关闭预分配功能。</p>
+<p>mydb.1、mydb.2，分成了分属于不同命名空间的区段，mydb.1有三个区段、mydb.2有四个区段、mydb.3只有一个区段，该区段属于预分配空间。在为命名空间分配一个新的区段时，会先搜索空闲列表mydb.$freelist，查看是否存在合适大小的区段。</p>
+<p><img src="https://raw.githubusercontent.com/okspy/image/master/mongodb/%E5%91%BD%E5%90%8D%E7%A9%BA%E9%97%B4%E4%B8%8E%E5%8C%BA%E6%AE%B5.png" alt="1566543786631"></p>
+<p>前面提到，mydb.ns是一个hash表，一个namespace对应一个集合或索引，该hash表中，一个节点元数据结构如下，每个节点628字节，16MB的.ns文件最多存储26715个namespace。哈希碰撞的概率也较低，采用的线性探针的方式解决哈希冲突。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">Node</span> &#123;</span></span><br><span class="line">    Namespace key;</span><br><span class="line">    <span class="keyword">int</span> hash;</span><br><span class="line">    NamespcaeDetails value;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>key为namespace的名字，固定分配128字节的空间</li>
+<li>hash为namespace的hash值</li>
+<li>value包含该namespace的所有元数据，定义如下</li>
+</ul>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">NamespaceDetails</span> &#123;</span></span><br><span class="line">    DiskLoc firstExtent; <span class="comment">// 第一个区段</span></span><br><span class="line">    DiskLoc lastExtent; <span class="comment">// 最后一个区段</span></span><br><span class="line">    <span class="comment">// 不同大小的删除列表</span></span><br><span class="line">    DiskLoc deletedListSmall[SmallBuckets];</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">DiskLoc</span> &#123;</span></span><br><span class="line">    <span class="keyword">int</span> _a; <span class="comment">// 数据文件编号，mydb.1编号为1，定位文件</span></span><br><span class="line">    <span class="keyword">int</span> ofs; <span class="comment">// 文件内部偏移量，定位文件内部的存储位置</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>firstExtent描述了第一个区段的位置</li>
+<li>lastExtent描述了最后一个区段的位置</li>
+<li>deletedList描述了各个被删除的元素</li>
+</ul>
+<p>通过这些信息，可以遍历一个namespace下的所有区段的有效数据，区段的定义如下</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">Extent</span> &#123;</span></span><br><span class="line">    <span class="keyword">unsigned</span> magic; <span class="comment">// 魔法数，校验合法性</span></span><br><span class="line">    DiskLoc myLocation; <span class="comment">// extent自身位置指针</span></span><br><span class="line">    DiskLoc next; <span class="comment">// 下一个extent位置指针</span></span><br><span class="line">    DiskLoc pre; <span class="comment">// 上一个extent位置指针</span></span><br><span class="line">    <span class="keyword">int</span> len; <span class="comment">// extent长度</span></span><br><span class="line">    DiskLoc firstRecord; <span class="comment">// extent内第一个record位置指针</span></span><br><span class="line">    DiskLoc lastRecord; <span class="comment">// extent内最后一个record位置指针</span></span><br><span class="line">    <span class="keyword">char</span> _extentData[<span class="number">4</span>];</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Record</span> &#123;</span></span><br><span class="line">    <span class="keyword">int</span> _len;</span><br><span class="line">    <span class="keyword">int</span> _extentOfs;</span><br><span class="line">    <span class="keyword">int</span> _nextOfs;</span><br><span class="line">    <span class="keyword">int</span> _preOfs;</span><br><span class="line">    <span class="keyword">char</span> _data[<span class="number">4</span>];</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// record 被删除后，以deletedRecord存储</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">DeletedRecord</span> &#123;</span></span><br><span class="line">   <span class="keyword">int</span> _len;  <span class="comment">// record长度</span></span><br><span class="line">   <span class="keyword">int</span> _extentOfs; <span class="comment">// record所在的extent位置指针</span></span><br><span class="line">   DiskLoc _nextDeleted; <span class="comment">// 下一个已删除记录的位置</span></span><br><span class="line">&#125;；</span><br></pre></td></tr></table></figure>
+
+<p>一条record对应mongoDB的一个文档，即一条数据记录。同一个区段（extent）下的所有<strong>record以双向链表的形式组织</strong>，record 被删除后，以deletedRecord存储，<strong>deletedRecord以单向链表的形式组织</strong>。</p>
+<h2 id="MMAPv1引擎CRUD"><a href="#MMAPv1引擎CRUD" class="headerlink" title="MMAPv1引擎CRUD"></a>MMAPv1引擎CRUD</h2><p><strong>写入</strong></p>
+<p>1、检查namespaceDetail中的deletedList中是否有合适的deletedRecord可以利用，如果有，则删除该记录并复用删除空间。</p>
+<p>2、检查数据文件的<strong>$freelist</strong>里是否有大小合适的不再使用的区段，如果有则复用该空间</p>
+<p>3、第1、2步均不成功，创建新的区段，如果当前数据文件没有足够空间创建新区段，创建新数据文件。</p>
+<p><strong>删除</strong></p>
+<p>删除的记录会以DeleteRecord的形式插入到对应集合的删除链表里，删除的空间在下一次写入新的记录时可能会被利用上；但也有可能一直用不上而浪费。比如某个128Bytes大小的记录被删除后，接下来写入的记录一直大于128B，则这个128B的DeletedRecord不能有效的被利用。当删除很多时，可能产生很多不能重复利用的”存储碎片”，从而导致存储空间大量浪费；<strong>可通过compact命令整理碎片。</strong>该命令会持有数据库级别的锁。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">db.runCommand ( &#123; <span class="attr">compact</span>: <span class="string">'&lt;collection&gt;'</span> &#125; )</span><br></pre></td></tr></table></figure>
+
+<p><strong>更新</strong></p>
+<p>更新跟删除类似，也有可能产生很多存储碎片</p>
+<ul>
+<li>更新的Record比原来小，可以直接复用现有的空间（原地更新）；多余的空间如果足够多，会将剩余空间插入到DeletedRecord链表；</li>
+<li>更新的Record比原来大，更新相当于删除 + 新写入，原来的空间会插入到DeletedRecord链表里。文档需要移动到文件中的其他位置，这种因更新导致的文档位置移动会严重降低写入性能，因为一旦文档移动，集合中的所有索引都要同步修改文档新的存储位置，<strong>可通过设置填充因子（paddingFactor）进行优化</strong>，比如：如果填充因子为2，一个大小为200字节的文档插入是，会自动在文档后填充100个字节的空间，这样在更新时，会使用第一种方式（更新的record比原来小）。</li>
+</ul>
+<p><strong>查询</strong></p>
+<p>没有索引的情况下，查询某个Record需要遍历整个集合，读取出符合条件的Record；如果经常需要根据每个纬度查询Record，则需要给集合建立索引以提供查询效率。</p>
+<h2 id="MMAPv1引擎锁粒度"><a href="#MMAPv1引擎锁粒度" class="headerlink" title="MMAPv1引擎锁粒度"></a>MMAPv1引擎锁粒度</h2><p>MMAPv1 3.0版本之前锁粒度是库，3.0版本后所粒度是集合，即表级锁，不支持事务，原子操作是文档的保存、修改、删除。</p>
+<h1 id="WiredTiger引擎"><a href="#WiredTiger引擎" class="headerlink" title="WiredTiger引擎"></a>WiredTiger引擎</h1><p>mongoDB 3.2设置wiredTiger为默认的存储引擎（之前版本默认MMAPv1），WiredTiger存储引擎负责将写操作写入cache（<strong>B树结构</strong>），满足条件后持久化（默认条件每隔60s或达到2GB）</p>
+<p>与MMAPv1一样，journal日志（<strong>预写式日志，write ahead log，WAL</strong>）用于数据恢复。对于write操作，首先被持久写入journal，然后在内存中保存变更数据，<strong>条件满足后提交一个新的检测点checkpoint</strong>，即检测点之前的数据只是在journal中持久存储，但并没有在mongodb的数据文件中持久化，延迟持久化可以提升磁盘效率，如果在提交checkpoint之前，mongodb异常退出，此后再次启动可以根据journal日志恢复数据。，如果60s内机器宕机，且未开启journal日志，会丢失这60s的数据。journal日志默认每100毫秒同步磁盘一次，每100M数据生成一个新的journal文件，journal默认使用了snappy压缩，检测点创建后，此前的journal日志即可清除。</p>
+<p><img src="https://raw.githubusercontent.com/okspy/image/master/mongodb/%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E.png" alt="1566802633253"></p>
+<h2 id="WiredTiger引擎文件空间分配"><a href="#WiredTiger引擎文件空间分配" class="headerlink" title="WiredTiger引擎文件空间分配"></a>WiredTiger引擎文件空间分配</h2><p>MMAPv1引擎中，集合和索引都以命名空间的方式混合存储在数据库文件中mydb.1、mydb.2等，同一个数据库文件存在多个集合的数据，例如mydb.1保存了集合c1、c2，即便删除了某个集合或索引，其占用的磁盘空间也会产生碎片难易清除。文件的存储级别是<strong>数据库级别</strong></p>
+<p>WiredTiger引擎中，文件的存储级别是<strong>集合和索引级别</strong>。将每个数据库中的所有集合和索引分别存储在单独的文件中，删除了集合或索引后，对应的文件自动清除，磁盘回收效率更高。</p>
+<p>data/db目录下的文件如下：</p>
+<p><img src="https://raw.githubusercontent.com/okspy/image/master/mongodb/%E6%96%87%E4%BB%B6%E7%A9%BA%E9%97%B4%E5%88%86%E9%85%8D1.png" alt="1566795516284"></p>
+<p>整体的目录结构如下图：</p>
+<p><img src="https://raw.githubusercontent.com/okspy/image/master/mongodb/%E7%9B%AE%E5%BD%95%E7%BB%93%E6%9E%84.png" alt="1566796884855"></p>
+<ul>
+<li>collection.wt存储集合信息，以编号不同区分，collection1.wt、collection2.wt</li>
+<li>index.wt存储索引信息，编号区分</li>
+<li>WiredTiger.lock定义锁操作</li>
+<li>WiredTiger.wt 存储collection.wt与index.wt的元数据</li>
+<li>WiredTiger.turtle 存储WiredTiger.wt 元数据</li>
+<li>journal 目录 存储journal日志</li>
+</ul>
+<h2 id="WiredTiger引擎存储模型"><a href="#WiredTiger引擎存储模型" class="headerlink" title="WiredTiger引擎存储模型"></a>WiredTiger引擎存储模型</h2><p>WiredTiger在执行写入任务时，不是直接写入到磁盘，首先写入的是cache，然后批量持久化，这也是MongoDB吃内存的主要原因，cache中使用B树保存数据，每个B树对应磁盘上的一个物理文件，树节点对应一个内存页、硬盘块，<strong>所以根节点与内部节点均会用于存储数据</strong>，目的是尽可能减少磁盘IO从而提高性能。</p>
+<p><img src="https://raw.githubusercontent.com/okspy/image/master/mongodb/WiredTiger%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84.png" alt="1566801831809"></p>
+<p>cache中的一个Page对应磁盘上的一个Extent（Mysql Innodb是1对4的关系），Extent大小为4K，存储了一系列键值对。</p>
+<p><img src="https://raw.githubusercontent.com/okspy/image/master/mongodb/WiredTiger-Page.png" alt="1566869294605"></p>
+<h3 id="WiredTiger引擎更新、插入、删除"><a href="#WiredTiger引擎更新、插入、删除" class="headerlink" title="WiredTiger引擎更新、插入、删除"></a>WiredTiger引擎更新、插入、删除</h3><ul>
+<li>遍历B树，找到待更新的页（如果cahce中没有热数据，从磁盘中获取，生成一个WT_ROW）</li>
+<li>如果有必要，生成预写日志</li>
+<li>在待更新的页执行更新、插入、删除操作</li>
+</ul>
+<p>当对某个键的值进行更新、删除时，将创建一个用于更新的结构，包含了事务id、已更改数据、指向后续更新的指针，之后的更新会将自己添加到前一个结构的末尾，随着时间的推移创建一个不同版本值的链式结构，N次更新组成长度为N的linkedlist。</p>
+<p>当进行插入时，生成一个skip linkedlist用于保存插入的信息，N次插入生成长度为N的保存了各skip linkedlist头信息的linkedlist—WT_INSERT_HEAD。</p>
+<h3 id="Copy-on-write"><a href="#Copy-on-write" class="headerlink" title="Copy on write"></a>Copy on write</h3><p>WiredTiger引擎采用Copy on write的方式管理修改操作（insert、update、delete），修改操作会先缓存在cache里，持久化时，<strong>修改操作不会在原来的leaf page上进行，而是写入新分配的page，每次checkpoint都会产生一个新的Root Page</strong>。</p>
+<p><img src="https://raw.githubusercontent.com/okspy/image/master/mongodb/WireTiger%E6%95%B0%E6%8D%AE%E6%9B%B4%E6%96%B0.png" alt="1566804600903"></p>
+<p>与MMAPv1引擎类似，当一个文档被删除时，WiredTiger不会立即归还该空间，会在后续的删除、更新、插入操作中优先复用该空间，可能会存在碎片，但影响不大，如果要整理碎片，可以调用compact命令。</p>
+<h2 id="为什么WiredTiger引擎使用B树而不是B-树"><a href="#为什么WiredTiger引擎使用B树而不是B-树" class="headerlink" title="为什么WiredTiger引擎使用B树而不是B+树"></a>为什么WiredTiger引擎使用B树而不是B+树</h2><p><img src="https://raw.githubusercontent.com/okspy/image/master/mongodb/B%E6%A0%91.png" alt="img"></p>
+<p><img src="https://raw.githubusercontent.com/okspy/image/master/mongodb/B+%E6%A0%91.png" alt="img"></p>
+<p>B树与B+树的简要图如上，二者最大的区别就是B树所有节点都用来存储key+data，而B+树只有叶子节点存储key+data，根节点与中间节点保存的是key的副本，相应的页存储的是key+指针，所有 data 存储在叶节点导致查询时间复杂度固定为 log n。而B-树查询时间复杂度不固定，与 key 在树中的位置有关，最好为O(1)。</p>
+<p><strong>无论是MongoDB选择B树，还是Mysql的InnoDB、MyIsam引擎选择B+树，目的都是尽可能减少磁盘IO。</strong></p>
+<p>MongoDB是一种聚合型数据库，它组织数据的特点就是将经常访问的数据放在一块（同一个JSON下包含所有信息），对于单个查询能够在与数据库的一次交互中将所有数据全部取出来，对于上图中key为37的数据，无论是B树还是B+树，都是3次IO，而对于key为50的数据，使用B树只需要1次IO，使用B+树需要3次IO。</p>
+<p>而Mysql是关系型数据库，使用B+树提高根节点和内部节点存放的信息量（由于内节点无 data 域，每个节点能索引的范围更大更精确），从而减少查询次数，达到减小磁盘IO的目的。最重要的是，B+树由于数据全部存储在叶子节点，并且通过指针串在一起，这样就很容易的进行区间遍历甚至全部遍历，然而，MongoDB很少有区间访问的需求，也就没有这种磁盘预读机制的需求。</p>
+<h2 id="WiredTiger引擎锁粒度"><a href="#WiredTiger引擎锁粒度" class="headerlink" title="WiredTiger引擎锁粒度"></a>WiredTiger引擎锁粒度</h2><p>WiredTiger的锁粒度为文档，对应Mysql的行级锁。</p>
+<h2 id="WiredTiger引擎4-0——事务"><a href="#WiredTiger引擎4-0——事务" class="headerlink" title="WiredTiger引擎4.0——事务"></a>WiredTiger引擎4.0——事务</h2><p>mongoDB对一个文档的写操作，会产生三个动作：</p>
+<ul>
+<li>对存储数据的Btree执行写操作</li>
+<li>对存储索引的Btree执行写操作</li>
+<li>对oplog（option log，与预写日志不是一回事，一个是已发生的，一个是将要发生的）执行写操作</li>
+</ul>
+<p>MongoDB的单文档事务指：上述三个动作的更新是原子的，处于同一个事务中。不存在<strong>索引段中的某个RecordId，在数据段中找不到</strong>，也不存在<strong>一条记录的更改被应用，但是没有记录到oplog中</strong>, 反之亦然。</p>
+<p>MongoDB  4.0提供了事务API，开始支持事务操作。它的事务是基于快照SANPSHOT、MVCC（Multi-Version Concurrency Control，多版本并发控制）实现的。</p>
+<h3 id="sanpshot"><a href="#sanpshot" class="headerlink" title="sanpshot"></a>sanpshot</h3><p>snapshot即快照。事务开始时，对整个WiredTiger内部正在执行或将要执行的所有事务进行一次截屏，保存当时整个引擎所有事务的状态。</p>
+<p><img src="https://raw.githubusercontent.com/okspy/image/master/mongodb/WiredTiger%E4%BA%8B%E5%8A%A1.png" alt="1566873597953"></p>
+<p>snapshot_object保存了快照信息。</p>
+<ul>
+<li>snap_min 最小执行事务</li>
+<li>snap_max 最大执行事务</li>
+<li>snap_array 位于snap_min与snap_max之间正在执行的事务，是不可见的。</li>
+</ul>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">snapshot_object = &#123;</span><br><span class="line">    snap_min=T1,</span><br><span class="line">    snap_max=T5,</span><br><span class="line">	snap_array=&#123;T1, T4, T5&#125;,</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p><strong>凡是出现在snap_array中或事务ID&gt;snap_max的事务均是不可见的。</strong>即便建立snapshot之后T1、T4、T5提交了，T6也无法访问的T1、T4、T5的修改。</p>
+<h3 id="MVCC"><a href="#MVCC" class="headerlink" title="MVCC"></a>MVCC</h3><p>MVCC基于事务ID和记录值实现一个链表，新的事务与相应的修改value，插入链表头部，链表中的节点定义抽象如下：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">wt_mvcc&#123;</span><br><span class="line">	transaction_id:    本次修改事务的ID	</span><br><span class="line">	value:             本次修改后的值</span><br><span class="line">    next;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>读取值时从链表头开始，根据snapshot来判断是否可读，如果不可读，向链表尾方向移动，直到找到第一个能够读的数据版本，下图中，读事务T5与读事务T3均会读到V1。</p>
+<p><img src="https://raw.githubusercontent.com/okspy/image/master/mongodb/MVCC.png" alt="1566880968502"></p>
+<h3 id="事务隔离"><a href="#事务隔离" class="headerlink" title="事务隔离"></a>事务隔离</h3><p>传统的数据库事务隔离分为:Read-Uncommited(未提交读)、Read-Commited(提交读)、Repeatable-Read(可重复读)和Serializable(串行化)，WiredTigerT引擎并没有按照传统的事务隔离实现这四个等级，而是基于snapshot的特点实现了下列事务隔离方式：</p>
+<ul>
+<li>Read-Uncommited</li>
+<li>Read-Commited</li>
+<li>snapshot-Isolation(快照隔离)</li>
+</ul>
+<p><strong>Read-Uncommited</strong></p>
+<p>又称为脏读，是最低的隔离级别，<strong>总是读取到系统中最新的修改（包括未提交）</strong>。WiredTiger的实现方式很简单，将snap_array置为空即可。在上图中，隔离级别设置为脏读后，事务T5读取到的值为V4。一般数据库不会设置成这种隔离方式，它违背了事务的ACID的特性。</p>
+<p><strong>Read-Commited</strong></p>
+<p>又称为幻读，<strong>总是读取到最新的、已提交的修改</strong>。这种隔离级别可能在一个长事务多次读取一个值的时候前后读到的值可能不一样。</p>
+<p>假设上图中的T5包含了两次读操作，中间sleep了2s，在这2s内T4提交了，则事务T5中，第一次读到的值为V1，第二次读到的值为V4。</p>
+<p><strong>snapshot-Isolation(快照隔离)</strong></p>
+<p>只在事务开始时生成一次快照，无论事务持续的过程中其他事务修改了几次值，该快照都不改变，<strong>所以值在整个事务执行过程中只有一个版本</strong>。</p>
+<p>事务T4的修改对T5不可见，如果T5也是一个写事务，在T5开始时，T4未提交，T5执行过程中，T4提交了，T5再去修改值，会产生失败回滚。这样做的目的是防止忽略不可见数据的修改。</p>
+<h3 id="与Mysql事务的区别"><a href="#与Mysql事务的区别" class="headerlink" title="与Mysql事务的区别"></a>与Mysql事务的区别</h3><p>通过上面对三种事务隔离方式的分析，<strong>WiredTiger并没有使用传统的事务独占锁和共享访问锁来保证事务隔离</strong>，而是通过对系统中<strong>写事务的snapshot截屏来实现</strong>。这样做的目的是在<strong>保证事务隔离的情况下又能提高系统事务并发的能力</strong>。</p>
 
           
         
@@ -1839,7 +2265,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">4</span>
+                  <span class="site-state-item-count">7</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
