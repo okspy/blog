@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-Hans">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="google-site-verification" content="OLomwgvPJUusE2fSmaSFCe7mLON5KNDocZQjKQDZdp0">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Hexo, NexT">
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="this逸出this逸出就是：在对象还未实例化完成时，就能被其他对象锁获取（发布）。 什么是this逸出对于一个类C来说，“外部方法”指的是行为不完全由类C规定的方法，包括其他类定义的方法，以及类C中可以被改写的方法。当把类C的对象传递给某个外部方法时，相当于发布了该对象，此时如果C的实例未完成实例化，就称为类C的实例的this逸出。最常见的“外部方法”使用场景是在构造器中生成内部类实例。 123">
+<meta property="og:type" content="article">
+<meta property="og:title" content="JAVA并发（二）对象安全">
+<meta property="og:url" content="http://yoursite.com/java并发编程（二）对象安全/index.html">
+<meta property="og:site_name" content="okspy">
+<meta property="og:description" content="this逸出this逸出就是：在对象还未实例化完成时，就能被其他对象锁获取（发布）。 什么是this逸出对于一个类C来说，“外部方法”指的是行为不完全由类C规定的方法，包括其他类定义的方法，以及类C中可以被改写的方法。当把类C的对象传递给某个外部方法时，相当于发布了该对象，此时如果C的实例未完成实例化，就称为类C的实例的this逸出。最常见的“外部方法”使用场景是在构造器中生成内部类实例。 123">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:image" content="https://raw.githubusercontent.com/okspy/image/master/concurrence/final%E7%A6%81%E6%AD%A2%E9%87%8D%E6%8E%92%E5%BA%8F.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/okspy/image/master/concurrence/final%E7%A6%81%E6%AD%A2%E9%87%8D%E6%8E%92%E5%BA%8F2.png">
+<meta property="og:updated_time" content="2019-10-01T04:23:19.781Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="JAVA并发（二）对象安全">
+<meta name="twitter:description" content="this逸出this逸出就是：在对象还未实例化完成时，就能被其他对象锁获取（发布）。 什么是this逸出对于一个类C来说，“外部方法”指的是行为不完全由类C规定的方法，包括其他类定义的方法，以及类C中可以被改写的方法。当把类C的对象传递给某个外部方法时，相当于发布了该对象，此时如果C的实例未完成实例化，就称为类C的实例的this逸出。最常见的“外部方法”使用场景是在构造器中生成内部类实例。 123">
+<meta name="twitter:image" content="https://raw.githubusercontent.com/okspy/image/master/concurrence/final%E7%A6%81%E6%AD%A2%E9%87%8D%E6%8E%92%E5%BA%8F.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/java并发编程（二）对象安全/">
+
+
+
+
+
+  <title>JAVA并发（二）对象安全 | okspy</title>
+  
+
+
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?5c2fc5dbac76adc09ece072c66e802cd";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">okspy</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br>
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br>
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/java并发编程（二）对象安全/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="shipengyang">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="okspy">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">JAVA并发（二）对象安全</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-10-01T00:00:00+08:00">
+                2019-10-01
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/并发/" itemprop="url" rel="index">
+                    <span itemprop="name">并发</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h1 id="this逸出"><a href="#this逸出" class="headerlink" title="this逸出"></a>this逸出</h1><p>this逸出就是：在对象还未实例化完成时，就能被其他对象锁获取（发布）。</p>
+<h2 id="什么是this逸出"><a href="#什么是this逸出" class="headerlink" title="什么是this逸出"></a>什么是this逸出</h2><p>对于一个类C来说，“外部方法”指的是行为不完全由类C规定的方法，包括其他类定义的方法，以及类C中可以被改写的方法。当把类C的对象传递给某个外部方法时，相当于发布了该对象，此时如果C的实例未完成实例化，就称为类C的实例的this逸出。<strong>最常见的“外部方法”使用场景是在构造器中生成内部类实例</strong>。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">1</span>  <span class="comment">// 定义一个事件监听的接口</span></span><br><span class="line"><span class="number">2</span>  <span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">EventListener</span> </span>&#123;</span><br><span class="line"><span class="number">3</span>      <span class="function"><span class="keyword">void</span> <span class="title">onEvent</span><span class="params">()</span></span>;</span><br><span class="line"><span class="number">4</span>  &#125;</span><br><span class="line"><span class="number">5</span></span><br><span class="line"><span class="number">6</span>  <span class="comment">// 定义一个管理事件监听器类</span></span><br><span class="line"><span class="number">7</span>  <span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">EventSource</span> </span>&#123;</span><br><span class="line"><span class="number">8</span>      <span class="keyword">private</span> List&lt;EventListener&gt; source = <span class="keyword">new</span> ArrayList&lt;&gt;(<span class="number">10</span>);</span><br><span class="line"><span class="number">9</span> </span><br><span class="line"><span class="number">10</span>     <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">registerListener</span><span class="params">(EventListener listener)</span> </span>&#123;</span><br><span class="line"><span class="number">11</span>         <span class="keyword">try</span> &#123;</span><br><span class="line"><span class="number">12</span>              Thread.sleep(<span class="number">500L</span>);</span><br><span class="line"><span class="number">13</span>         &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line"><span class="number">14</span>              e.printStackTrace();</span><br><span class="line"><span class="number">15</span>         &#125;</span><br><span class="line"><span class="number">16</span>         listener.onEvent(); <span class="comment">//假设listener注册500ms就被调用了</span></span><br><span class="line"><span class="number">17</span>         source.add(listener);</span><br><span class="line"><span class="number">18</span>     &#125;</span><br><span class="line"><span class="number">19</span> &#125;</span><br><span class="line"><span class="number">20</span></span><br><span class="line"><span class="number">21</span>  <span class="comment">// this逸出类</span></span><br><span class="line"><span class="number">22</span>  <span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ThisEscape</span> </span>&#123;</span><br><span class="line"><span class="number">23</span>    <span class="keyword">private</span> String name;</span><br><span class="line"><span class="number">24</span>    <span class="keyword">private</span> Thread t;</span><br><span class="line"><span class="number">25</span></span><br><span class="line"><span class="number">26</span>    <span class="function"><span class="keyword">public</span> <span class="title">ThisEscape</span><span class="params">(EventSource source, String initName)</span> </span>&#123;</span><br><span class="line"><span class="number">27</span>        name = initName;</span><br><span class="line"><span class="number">28</span></span><br><span class="line"><span class="number">29</span>        <span class="comment">// 在构造器中启动线程</span></span><br><span class="line"><span class="number">30</span>        t = <span class="keyword">new</span> Thread(<span class="keyword">new</span> Runnable() &#123;</span><br><span class="line"><span class="number">31</span>            <span class="meta">@Override</span></span><br><span class="line"><span class="number">32</span>            <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line"><span class="number">33</span>                name = <span class="string">"threadName"</span>; <span class="comment">// this可能逸出至其他线程</span></span><br><span class="line"><span class="number">34</span>            &#125;</span><br><span class="line"><span class="number">35</span>        &#125;);</span><br><span class="line"><span class="number">36</span>        t.start(); <span class="comment">// 一旦启动该线程，this就逸出了，name随时有可能被修改为threadName</span></span><br><span class="line"><span class="number">37</span></span><br><span class="line"><span class="number">38</span>        source.registerListener(<span class="keyword">new</span> EventListener() &#123;</span><br><span class="line"><span class="number">39</span>            <span class="meta">@Override</span></span><br><span class="line"><span class="number">40</span>            <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">onEvent</span><span class="params">()</span> </span>&#123;</span><br><span class="line"><span class="number">41</span>                name = <span class="string">"eventName"</span>; <span class="comment">// this隐式逸出</span></span><br><span class="line"><span class="number">42</span>            &#125;</span><br><span class="line"><span class="number">43</span>        &#125;);</span><br><span class="line"><span class="number">44</span>        <span class="comment">// 构造函数中需要耗时才能完成this构建，这里为了明显的看到this逸出的效果，设为1s</span></span><br><span class="line"><span class="number">45</span>        <span class="keyword">try</span> &#123;</span><br><span class="line"><span class="number">46</span>            Thread.sleep(<span class="number">1000L</span>);</span><br><span class="line"><span class="number">47</span>        &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line"><span class="number">48</span>            e.printStackTrace();</span><br><span class="line"><span class="number">49</span>        &#125;</span><br><span class="line"><span class="number">50</span>    &#125;</span><br><span class="line"><span class="number">51</span></span><br><span class="line"><span class="number">52</span>    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line"><span class="number">53</span>        ThisEscape thisEscape = <span class="keyword">new</span> ThisEscape(<span class="keyword">new</span> EventSource(), <span class="string">"initName"</span>);</span><br><span class="line"><span class="number">54</span>        System.out.println(<span class="string">"name = "</span> + thisEscape.name);</span><br><span class="line"><span class="number">55</span>    &#125;</span><br><span class="line"><span class="number">56</span> &#125;</span><br></pre></td></tr></table></figure>
+
+<p>上述代码中存在两处this逸出，一个是33行、另一个是在41行，最后name的值取决于11<del>15行、30</del>36行、45~49行这三处，它们分别是：</p>
+<ul>
+<li>11~15行：listener注册完成后多久才会调用到onEvent？</li>
+<li>30~36行：线程t何时启动？</li>
+<li>45~49行：thisEscape对象需要多久才能构造完成？</li>
+</ul>
+<p>前两处在实际应用的过程中都有可能不是构造器能够控制的，无论是Runable还是EventListener，它们的本质是相同的：<strong>在构造器中初始化一个内部类的实例，导致this隐式的泄露</strong>。</p>
+<h2 id="避免this逸出"><a href="#避免this逸出" class="headerlink" title="避免this逸出"></a>避免this逸出</h2><p>为了避免this逸出，有如下策略：</p>
+<ul>
+<li>可以在构造器中创建线程，但不要直接启动该线程，应该确保在对象初始化完成后再启动该线程</li>
+<li>只要将构造器设置为private，然后使用工厂方法发布对象，就一定不存在this逸出。</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 基于工厂方法防止this引用逸出</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">SafeListener</span> </span>&#123;</span><br><span class="line">	<span class="keyword">private</span> String name;</span><br><span class="line">	<span class="keyword">private</span> <span class="keyword">final</span> EventListener listener;</span><br><span class="line">	</span><br><span class="line">	<span class="function"><span class="keyword">private</span> <span class="title">SafeListener</span><span class="params">(String initName)</span> </span>&#123;</span><br><span class="line">		name = initName;</span><br><span class="line">		listener = <span class="keyword">new</span> EventListener() &#123;</span><br><span class="line">			<span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">onEvent</span><span class="params">()</span> </span>&#123;</span><br><span class="line">                name = <span class="string">"eventName"</span>; </span><br><span class="line">			&#125;</span><br><span class="line">		&#125;;</span><br><span class="line">	&#125;</span><br><span class="line">	</span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">static</span> SafeListener <span class="title">newInstance</span><span class="params">(EventSource source, String initName)</span> </span>&#123;</span><br><span class="line">		SafeListener listener = <span class="keyword">new</span> SafeListener(initName);</span><br><span class="line">		source.registerListener(listener); <span class="comment">// listener已构造完成，不存在this泄露</span></span><br><span class="line">		<span class="keyword">return</span> listener;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h1 id="线程封闭"><a href="#线程封闭" class="headerlink" title="线程封闭"></a>线程封闭</h1><p>共享的对象在堆中可以被所有线程访问到，所以会存在线程不安全的问题，但如果某个对象只能被单线程访问，就不存在线程安全问题。这种仅在单线程内访问对象、将某个对象封闭起来的技术称为线程封闭。</p>
+<h2 id="单线程写入volatile变量"><a href="#单线程写入volatile变量" class="headerlink" title="单线程写入volatile变量"></a>单线程写入volatile变量</h2><p>在volatile变量上存在一种特殊的线程封闭，只要能确保只有单个线程对共享的volatile变量执行写入操作，那么就可以安全地在这些共享volatile变量上执行“读取-修改-写入”操作，这种情况相当于将修改操作封闭在单个线程中，避免了竞态条件，并且volatile变量的可见性可以保证其他线程能够看到最新的修改。</p>
+<h2 id="栈封闭"><a href="#栈封闭" class="headerlink" title="栈封闭"></a>栈封闭</h2><p>栈封闭是线程封闭的一种特例，在栈封闭中，只有通过局部变量才能访问对象，局部变量都存在于栈中，因此，它是线程安全的。例如：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">calculte</span><span class="params">(List&lt;Integer&gt; list)</span> </span>&#123;</span><br><span class="line">	List&lt;Integer&gt; localList = <span class="keyword">new</span> ArrayList&lt;&gt;();</span><br><span class="line">	</span><br><span class="line">	localList.addAll(list);</span><br><span class="line">	<span class="comment">// 后续对localList进行操作，线程安全</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="ThreadLocal"><a href="#ThreadLocal" class="headerlink" title="ThreadLocal"></a>ThreadLocal</h2><p>维持线程封闭另一种做法是使用ThreadLocal，这个类能够使线程与对象关联起来，在线程的上下文都可以获取某一个对象，常用在服务器会话上下文变量的传递等场景下。详见<a href="https://okspy.github.io/threadLocal/" target="_blank" rel="noopener">ThreadLocal原理</a>。</p>
+<h1 id="不变性"><a href="#不变性" class="headerlink" title="不变性"></a>不变性</h1><p>不可变的对象一定是线程安全的。不可变对象指的是：只有一种状态，且该状态在构造函数内完成，一旦对象构造完成，不再改变。</p>
+<h2 id="final关键字"><a href="#final关键字" class="headerlink" title="final关键字"></a>final关键字</h2><p>final关键字用于构造不可变对象，final类型的域是不能修改的。与c/c++的constant常量有些相似；但JMM中，final关键字被增强了，还有另外一层语义：初始化过程是安全的，final域禁止处理器把final域的写重排序到构造函数之外，一个对象的final域的初始化一定在该对象初始化完成之前完成。</p>
+<h3 id="finnal域的写"><a href="#finnal域的写" class="headerlink" title="finnal域的写"></a>finnal域的写</h3><p>原理图如下，在写final域b=2操作后，添加了一个storestore屏障，然后才是构造函数执行结束，而普通域a，则有可能重排序到构造函数执行后。</p>
+<p><img src="https://raw.githubusercontent.com/okspy/image/master/concurrence/final%E7%A6%81%E6%AD%A2%E9%87%8D%E6%8E%92%E5%BA%8F.png" alt="final禁止重排序"></p>
+<h3 id="final域的读"><a href="#final域的读" class="headerlink" title="final域的读"></a>final域的读</h3><p>同样的，还有一个loadload屏障用于读final域，初次读对象与读对象的final域之间有一个loadload屏障，一个对象的final域的初始化一定在该对象初始化完成之前完成。</p>
+<p><img src="https://raw.githubusercontent.com/okspy/image/master/concurrence/final%E7%A6%81%E6%AD%A2%E9%87%8D%E6%8E%92%E5%BA%8F2.png" alt="img"></p>
+<h3 id="final与this逸出"><a href="#final与this逸出" class="headerlink" title="final与this逸出"></a>final与this逸出</h3><p>如果出现了this逸出（this逸出：对象在构造函数执行结束前就能被其他对象或线程获取），上述storestore屏障相当于失效了，因此，final的安全性建立在没有this逸出的前提下。</p>
+<h3 id="final域的安全性"><a href="#final域的安全性" class="headerlink" title="final域的安全性"></a>final域的安全性</h3><p>在storestore、loadload屏障、没有this逸出的保证下，final关键字声明的域是可以安全发布的，一旦构造完成就不可变，且无法读取到未构造完的final域，对象为null时读取不到final域。</p>
+<p>综上，final保证对象只能被初始化一次，且初始化过程是安全的：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">final</span> List&lt;String&gt; list = <span class="keyword">new</span> ArrayList&lt;&gt;(<span class="number">16</span>);</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">updateList</span><span class="params">(List newList)</span> </span>&#123;</span><br><span class="line">	list = newList;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>然而，若final域引用的对象是可变的，这些被引用的对象可以被修改，还是存在线程不安全。比如下面的例子，虽然list不能被初始化两次，仍然可以修改list的内容。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">final</span> List&lt;String&gt; list = <span class="keyword">new</span> ArrayList&lt;&gt;(<span class="number">16</span>);</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">add</span><span class="params">(String s)</span> </span>&#123;</span><br><span class="line">    list.add(s);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">get</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> list;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/hashMap/" rel="next" title="hashMap源码解读">
+                <i class="fa fa-chevron-left"></i> hashMap源码解读
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/java并发编程（一）线程安全/" rel="prev" title="JAVA并发（一）线程安全">
+                JAVA并发（一）线程安全 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+    <div class="comments" id="comments">
+      <div id="lv-container" data-id="city" data-uid="MTAyMC80NjY0NC8yMzE1NA=="></div>
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">shipengyang</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">12</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">5</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">2</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#this逸出"><span class="nav-number">1.</span> <span class="nav-text">this逸出</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#什么是this逸出"><span class="nav-number">1.1.</span> <span class="nav-text">什么是this逸出</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#避免this逸出"><span class="nav-number">1.2.</span> <span class="nav-text">避免this逸出</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#线程封闭"><span class="nav-number">2.</span> <span class="nav-text">线程封闭</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#单线程写入volatile变量"><span class="nav-number">2.1.</span> <span class="nav-text">单线程写入volatile变量</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#栈封闭"><span class="nav-number">2.2.</span> <span class="nav-text">栈封闭</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ThreadLocal"><span class="nav-number">2.3.</span> <span class="nav-text">ThreadLocal</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#不变性"><span class="nav-number">3.</span> <span class="nav-text">不变性</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#final关键字"><span class="nav-number">3.1.</span> <span class="nav-text">final关键字</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#finnal域的写"><span class="nav-number">3.1.1.</span> <span class="nav-text">finnal域的写</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#final域的读"><span class="nav-number">3.1.2.</span> <span class="nav-text">final域的读</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#final与this逸出"><span class="nav-number">3.1.3.</span> <span class="nav-text">final与this逸出</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#final域的安全性"><span class="nav-number">3.1.4.</span> <span class="nav-text">final域的安全性</span></a></li></ol></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">shipengyang</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+    <script type="text/javascript">
+      (function(d, s) {
+        var j, e = d.getElementsByTagName(s)[0];
+        if (typeof LivereTower === 'function') { return; }
+        j = d.createElement(s);
+        j.src = 'https://cdn-city.livere.com/js/embed.dist.js';
+        j.async = true;
+        e.parentNode.insertBefore(j, e);
+      })(document, 'script');
+    </script>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+
+</body>
+</html>

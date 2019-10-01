@@ -10,6 +10,7 @@
   <meta charset="UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="google-site-verification" content="OLomwgvPJUusE2fSmaSFCe7mLON5KNDocZQjKQDZdp0">
 <meta name="theme-color" content="#222">
 
 
@@ -128,6 +129,16 @@
 
 
 
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?5c2fc5dbac76adc09ece072c66e802cd";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
 
 
 
@@ -187,6 +198,26 @@
         </li>
       
         
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br>
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br>
+            
+            分类
+          </a>
+        </li>
+      
+        
         <li class="menu-item menu-item-archives">
           <a href="/archives/" rel="section">
             
@@ -229,7 +260,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/MongoDB系列（一）MongoDB简介/">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/springboot+RabbitMQ系列（二）生产者/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="shipengyang">
@@ -248,7 +279,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/MongoDB系列（一）MongoDB简介/" itemprop="url">MongoDB系列（一）MongoDB简介</a></h1>
+                <a class="post-title-link" href="/springboot+RabbitMQ系列（二）生产者/" itemprop="url">springboot+RabbitMQ系列（二）生产者</a></h1>
         
 
         <div class="post-meta">
@@ -260,8 +291,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-08-15T00:00:00+08:00">
-                2019-08-15
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-08-05T00:29:29+08:00">
+                2019-08-05
               </time>
             
 
@@ -283,8 +314,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/数据库/" itemprop="url" rel="index">
-                    <span itemprop="name">数据库</span>
+                  <a href="/categories/springboot/" itemprop="url" rel="index">
+                    <span itemprop="name">springboot</span>
                   </a>
                 </span>
 
@@ -322,47 +353,285 @@
       
         
           
-            <p>MongoDB是一款强大、灵活、易于扩展的、由C++编写的聚合型、文档型、NoSQL数据库，支持二级索引、范围查询、排序、聚合、地理空间索引等功能。</p>
-<p>MongoDB是面向文档的数据库，不是关系型数据库，不采用关系模型是为了更好的扩展性。与关系型数据库相比，有以下特点：</p>
-<ul>
-<li>没有“一行数据”的概念，取而代之的是“一条文档”</li>
-<li>不再有预定义模式，文档的键和值不再是固定的类型和大小，可以随意扩展。</li>
-<li>易于扩展，随着数据的增长，横向扩展（增加机器）变得更加方便，MongoDB能够自动处理跨集群的数据和负载，自动重新分配文档、自动将用户请求路由至正确的机器上。</li>
-<li>功能丰富，支持索引、聚合、文件存储、以及特殊集合，如会过期的数据：日志、会话等。</li>
-<li>性能更强，4.0版本前不支持事务，但提供了诸多原子操作：文档的保存、修改、删除。</li>
+            <p>AMQP定义了普遍适用的消息通信框架，只规定了最底层的协议，有关协议的细节可以有多种实现，因此，Spring AMQP提供了<code>AmqpTemplate</code>作为收发消息的模板，定义了一些常用的收发消息的接口，<code>AmqpTemplate</code>是一个底层的模板，它的上层实现可以根据具体的协议细节定义其他的接口。</p>
+<p>目前，Spring AMQP只有一个实现——<code>RabbitTemplate</code>。</p>
+<p><code>RabbitTemplate</code>可以用来收发消息，但是一般的，<code>RabbitTemplate</code>只用来发送消息，接收消息使用<code>@RabbitListener</code>与容器工厂。这是生产者和消费者特性导致的：生产者采用阻塞的方式，与MQ服务器之间是短连接，消费者采用非阻塞，一个线程接收线程，另外的线程处理消息，与MQ服务器之间是长连接。本章介绍<code>RabbitTemplate</code>的一些属性的配置，以及如何使用<code>RabbitTemplate</code>发送消息。</p>
+<h1 id="RabbitTemplate配置"><a href="#RabbitTemplate配置" class="headerlink" title="RabbitTemplate配置"></a>RabbitTemplate配置</h1><h2 id="重试机制"><a href="#重试机制" class="headerlink" title="重试机制"></a>重试机制</h2><p>在MQ客户端与MQ服务器之间连接出现异常时，消息收发可能会抛出异常，为了避免频繁抛出异常，可以加入一些重试机制，在抛出异常前，重试几次，通过设置<code>RetryTemplate</code>实现消息的重试。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Bean</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> AmqpTemplate <span class="title">rabbitTemplate</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    RabbitTemplate template = <span class="keyword">new</span> RabbitTemplate(connectionFactory());</span><br><span class="line">    RetryTemplate retryTemplate = <span class="keyword">new</span> RetryTemplate();</span><br><span class="line">    ExponentialBackOffPolicy backOffPolicy = <span class="keyword">new</span> ExponentialBackOffPolicy();</span><br><span class="line">    backOffPolicy.setInitialInterval(<span class="number">500</span>);</span><br><span class="line">    backOffPolicy.setMultiplier(<span class="number">10.0</span>);</span><br><span class="line">    backOffPolicy.setMaxInterval(<span class="number">10000</span>);</span><br><span class="line">    retryTemplate.setBackOffPolicy(backOffPolicy);</span><br><span class="line">    template.setRetryTemplate(retryTemplate);</span><br><span class="line">    <span class="keyword">return</span> template;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="生产者可靠投递"><a href="#生产者可靠投递" class="headerlink" title="生产者可靠投递"></a>生产者可靠投递</h2><p>生产者是异步的，无法通过返回值知道消息是否成功发送，默认的，无法路由至MQ服务器的消息会直接被丢弃，无任何异常抛出。</p>
+<h3 id="ConfirmCallback"><a href="#ConfirmCallback" class="headerlink" title="ConfirmCallback"></a>ConfirmCallback</h3><p>消息发送到<code>RabbitMQ exchange</code>（消息发送至MQ服务器）后接收ack回调。消息只要被Rabbit服务器接收到就会发调用该回调。但是不能保证消息一定会投递至目标队列，为了确保投递至目标队列，需要设置<code>ReturnCallback</code></p>
+<p>注意：必需把<code>CachingConnectionFactory</code>的<code>PublierConfirms</code>设置为true</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">CachingConnectionFactory factory = <span class="keyword">new</span> CachingConnectionFactory();</span><br><span class="line">RabbitTemplate rabbitTemplate = <span class="keyword">new</span> RabbitTemplate();</span><br><span class="line">factory.setPublisherConfirms(<span class="keyword">true</span>);</span><br><span class="line">rabbitTemplate.setConnectionFactory(factory);</span><br><span class="line">rabbitTemplate.setConfirmCallback(<span class="keyword">new</span> RabbitTemplate.ConfirmCallback() &#123;    </span><br><span class="line">    <span class="meta">@Override</span>    </span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">confirm</span><span class="params">(CorrelationData correlationData, <span class="keyword">boolean</span> ack, String cause)</span> </span>&#123;            <span class="keyword">if</span>(ack)&#123;</span><br><span class="line">			logger.info(<span class="string">"successed send msg to MQ server &#123;&#125;"</span>, correlationDate)</span><br><span class="line">    	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        	logger.info(<span class="string">"failed send msg to MQ server caused by &#123;&#125;"</span>, cause)</span><br><span class="line">    	&#125;</span><br><span class="line">                                                                                  </span><br><span class="line">    &#125;</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+
+<h3 id="ReturnCallback"><a href="#ReturnCallback" class="headerlink" title="ReturnCallback"></a>ReturnCallback</h3><p>消息发送至MQ服务器的exchange，但是无相应队列与该交换器绑定时的回调。发送失败的消息重新返回给生产者，在<code>returnedMessage</code>方法中处理失败的消息。</p>
+<p>注意：必需把<code>CachingConnectionFactory</code>的<code>PublierReturns</code>设置为true</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">CachingConnectionFactory factory = <span class="keyword">new</span> CachingConnectionFactory();</span><br><span class="line">RabbitTemplate rabbitTemplate = <span class="keyword">new</span> RabbitTemplate();</span><br><span class="line"></span><br><span class="line">factory.setPublisherReturns(<span class="keyword">true</span>);</span><br><span class="line"></span><br><span class="line">rabbitTemplate.setConnectionFactory(factory);</span><br><span class="line">rabbitTemplate.setMandatory(<span class="keyword">true</span>);</span><br><span class="line">rabbitTemplate.setReturnCallback(<span class="keyword">new</span> RabbitTemplate.ReturnCallback() &#123;    </span><br><span class="line">    <span class="meta">@Override</span>    </span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">returnedMessage</span><span class="params">(Message message, <span class="keyword">int</span> i, String s, String s1, String s2)</span> </span>&#123; </span><br><span class="line">    	<span class="comment">// process message</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+
+<p><strong>注意</strong>：为确保接收到<code>ReturnCallback</code>、<code>ConfirmCallback</code>，channel必须处于alive的状态，当<code>channelCacheSize</code>满时，spring框架默认等待5秒然后关闭channel。所以，使用<code>ReturnCallback</code>、<code>ConfirmCallback</code>时要确保<code>channelCacheSize</code>足够大，尽可能的确保channel处于alive状态。</p>
+<p>(3) 消息发送的目的得是一个不存在的exchange，底层会抛出异常并关闭连接，通过addConnectionListener，实现onShutDown方法处理该异常。见2.9节。</p>
+<h2 id="连接池"><a href="#连接池" class="headerlink" title="连接池"></a>连接池</h2><p>在2.6节中，了解到为了避免connection释放出现死锁，也避免消费者因生产者阻塞而阻塞，生产者和消费者应使用独立的连接池，springboot2.0.2版本后，<code>CachingConnectionFactory</code>内部有两个连接池，一个是生产者的一个是消费者，但是要显示设置<code>usePublisherConnection</code>为ture，默认是false。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">RabbitTemplate rabbitTemplate = <span class="keyword">new</span> RabbitTemplate();</span><br><span class="line">rabbitTemplate.setUsePublisherConnection(<span class="keyword">true</span>);</span><br></pre></td></tr></table></figure>
+
+<p>注意：如果是事务性的，此设置无效，生产者和消费者还是会共用同一个连接池。</p>
+<h1 id="生产消息"><a href="#生产消息" class="headerlink" title="生产消息"></a>生产消息</h1><h1 id="构建消息"><a href="#构建消息" class="headerlink" title="构建消息"></a>构建消息</h1><p>可以直接发送字节数组，<code>SimpleMessageConverter</code>默认地封装消息的<code>ContenType、Hearder、MessageId</code>等，但有时，想要控制这些属性的生成规则，需要通过<code>MessageBuiler</code>和<code>MessagePropertiesBuilder</code>构建Spring AMQP <code>Message</code>。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">MessageProperties props = MessagePropertiesBuilder.newInstance()</span><br><span class="line">    .setContentType(MessageProperties.CONTENT_TYPE_TEXT_PLAIN)</span><br><span class="line">    .setMessageId(<span class="string">"123"</span>)</span><br><span class="line">    .setHeader(<span class="string">"bar"</span>, <span class="string">"baz"</span>)</span><br><span class="line">    .build();</span><br><span class="line">Message message = MessageBuilder.withBody(<span class="string">"foo"</span>.getBytes())</span><br><span class="line">    .andProperties(props)</span><br><span class="line">    .build();</span><br></pre></td></tr></table></figure>
+
+<h2 id="构建CorrelationData"><a href="#构建CorrelationData" class="headerlink" title="构建CorrelationData"></a>构建CorrelationData</h2><p><code>CorrelationData</code>是与消息关联的数据，比如，通过设置分布式的唯一id作为<code>CorrelationData</code>的id，即消息ID。可以实现消费端的去重的功能。它的定义如下，只有一个属性：id。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">CorrelationData</span> <span class="keyword">implements</span> <span class="title">Correlation</span> </span>&#123;    </span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">volatile</span> String id;    </span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">CorrelationData</span><span class="params">()</span> </span>&#123;    </span><br><span class="line">    &#125;    </span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">CorrelationData</span><span class="params">(String id)</span> </span>&#123;        </span><br><span class="line">        <span class="keyword">this</span>.id = id;    </span><br><span class="line">    &#125;    </span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="keyword">public</span> String <span class="title">getId</span><span class="params">()</span> </span>&#123;        </span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">this</span>.id;    </span><br><span class="line">    &#125;    </span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setId</span><span class="params">(String id)</span> </span>&#123;        </span><br><span class="line">        <span class="keyword">this</span>.id = id;    </span><br><span class="line">    &#125;    </span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="keyword">public</span> String <span class="title">toString</span><span class="params">()</span> </span>&#123;        </span><br><span class="line">        <span class="keyword">return</span> <span class="string">"CorrelationData [id="</span> + <span class="keyword">this</span>.id + <span class="string">"]"</span>;    </span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>生产者设置CorrelationData</strong>：<code>RabbitTemplate</code>的<code>send()</code>方法或为<code>rabbitTemplate</code>配置<code>setCorrelationDataPostProcessor</code></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">send</span><span class="params">(String exchange, String routingKey, Message message, CorrelationData correlationData)</span> <span class="keyword">throws</span> AmqpException </span>&#123;&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>消费者获取CorrelationData</strong>：</p>
+<p>在Spring AMQP <code>Message</code>中获取。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">String id = message.getMessageProperties().getCorrelationId();</span><br></pre></td></tr></table></figure>
+
+<h2 id="统一修改消息和CorrelationData"><a href="#统一修改消息和CorrelationData" class="headerlink" title="统一修改消息和CorrelationData"></a>统一修改消息和CorrelationData</h2><p>在消息Id自定义、消息属性统一修改、消息内容统一修改的场景下，统一的定义修改方法有利于编码和debug。<code>RabbitTemplate</code>比<code>AmqpTemplate</code>在所有send方法底层实现上都新增了关联数据<code>correlationDate</code>信息，<code>correlationDate</code>也是3.1.2中提到的消息可靠投递的支撑。</p>
+<p><code>correlationDate</code>和<code>Message</code>的统一修改示例如下。可以用</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">RabbitTemplate rabbitTemplate = <span class="keyword">new</span> RabbitTemplate();</span><br><span class="line">rabbitTemplate.setCorrelationDataPostProcessor(<span class="keyword">new</span> CorrelationDataPostProcessor() &#123;    </span><br><span class="line">    <span class="meta">@Override</span>    </span><br><span class="line">    <span class="function"><span class="keyword">public</span> CorrelationData <span class="title">postProcess</span><span class="params">(Message message, CorrelationData correlationData)</span> </span></span><br><span class="line"><span class="function">    </span>&#123;        </span><br><span class="line">        <span class="comment">// modify correlationDate   </span></span><br><span class="line">    	correlationData.setId();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;);</span><br><span class="line"></span><br><span class="line">rabbitTemplate.setBeforePublishPostProcessors(<span class="keyword">new</span> MessagePostProcessor() &#123;    </span><br><span class="line">    <span class="meta">@Override</span>    </span><br><span class="line">    <span class="function"><span class="keyword">public</span> Message <span class="title">postProcessMessage</span><span class="params">(Message message)</span> <span class="keyword">throws</span> AmqpException </span>&#123;        </span><br><span class="line">        <span class="comment">// modify message    </span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+
+<h1 id="发送消息"><a href="#发送消息" class="headerlink" title="发送消息"></a>发送消息</h1><p>消息的发送很简答，<code>RabbitTemplate</code>提供了众多接口供发送消息。主要有两大类：<code>send()、convertAndSend()</code>。如果使用是字节数组等非Message类型的参数作为消息，考虑采用<code>convertAndSend()</code>。如果使用的是构建好的Message，使用两者皆可。<code>send()</code>接口定义如下。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">send</span><span class="params">(Message message)</span> <span class="keyword">throws</span> AmqpException</span>;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">send</span><span class="params">(String routingKey, Message message)</span> <span class="keyword">throws</span> AmqpException</span>;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">send</span><span class="params">(String exchange, String routingKey, Message message)</span> <span class="keyword">throws</span> AmqpException</span>;</span><br></pre></td></tr></table></figure>
+
+<p>如果多除调用<code>send()</code>，可以统一为<code>rabbitTemplate</code>配置<code>routingKey、exchange</code>，这样直接调用第一个方法就可以直接实现消息的发送，这种应用场景更多的在<code>rabbitTemplate</code>只对应一个队列。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">amqpTemplate.setExchange(<span class="string">"marketData.topic"</span>);</span><br><span class="line">amqpTemplate.setRoutingKey(<span class="string">"quotes.nasdaq.FOO"</span>);</span><br><span class="line">amqpTemplate.send(<span class="keyword">new</span> Message(<span class="string">"12.34"</span>.getBytes(), someProperties));</span><br></pre></td></tr></table></figure>
+
+<p>使用默认的exchange(简单模式，routingKey==queuename)，发送至固定队列</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">RabbitTemplate template = <span class="keyword">new</span> RabbitTemplate(); <span class="comment">// using default no-name Exchange</span></span><br><span class="line">template.send(<span class="string">"queue.helloWorld"</span>, <span class="keyword">new</span> Message(<span class="string">"Hello World"</span>.getBytes(), someProperties));</span><br></pre></td></tr></table></figure>
+
+<p>与上面效果一样。使用默认的exchange，发送至固定队列</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">RabbitTemplate template = <span class="keyword">new</span> RabbitTemplate(); <span class="comment">// using default no-name Exchange</span></span><br><span class="line">template.setRoutingKey(<span class="string">"queue.helloWorld"</span>); <span class="comment">// but we'll always send to this Queue</span></span><br><span class="line">template.send(<span class="keyword">new</span> Message(<span class="string">"Hello World"</span>.getBytes(), someProperties));</span><br></pre></td></tr></table></figure>
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/springboot+RabbitMQ系列(一)数据库连接/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="shipengyang">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="okspy">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/springboot+RabbitMQ系列(一)数据库连接/" itemprop="url">springboot+RabbitMQ系列（一）数据库连接</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-08-01T00:29:29+08:00">
+                2019-08-01
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/springboot/" itemprop="url" rel="index">
+                    <span itemprop="name">springboot</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p>本文参考了 <a href="https://docs.spring.io/spring-amqp/docs/2.0.3.RELEASE/reference/html/" target="_blank" rel="noopener">springboot官方文档</a>，主要介绍依赖springboot-amqp模块实现与RabbitMQ服务端的连接。</p>
+<h1 id="ConnectionFactory"><a href="#ConnectionFactory" class="headerlink" title="ConnectionFactory"></a>ConnectionFactory</h1><p>spring AMQP默认使用<code>CachingConnectionFactory</code>创建一个应用程序共享的连接工厂，也是用途最广泛的<code>ConnectionFactory</code>构建方法，也为Junit提供了<code>SingleConnectionFactory</code>，<code>SingleConncetionFactory</code>不常用，不再赘述。</p>
+<p>与AMQP通信的工作单元实际上是Channel，TCP连接可以共享。connectionFactory分为两种模式，一种是缓存channel，一种是缓存connection（同时也缓存该connection的channel）。默认是缓存channel的模式，<strong>高可用集群场景下（镜像队列）</strong>，通过负载均衡器连接至集群中不同的实例时，可以通过setCacheMode设置为缓存connection的模式。代码示例中给出了缓存connection的模式，同时也设置了<code>channelCacheSize</code>。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> CachingConnectionFactory <span class="title">buildConnFactory</span><span class="params">(String addresses, String username, String password, String vhost)</span> </span>&#123;    </span><br><span class="line">    CachingConnectionFactory connectionFactory = <span class="keyword">new</span> CachingConnectionFactory();    </span><br><span class="line">    connectionFactory.setAddresses(addresses);    </span><br><span class="line">    connectionFactory.setUsername(username);    </span><br><span class="line">    connectionFactory.setPassword(password);    </span><br><span class="line">    connectionFactory.setVirtualHost(vhost);    </span><br><span class="line">    connectionFactory.setCacheMode(CachingConnectionFactory.CacheMode.CONNECTION);      </span><br><span class="line">    connectionFactory.setConnectionCacheSize(<span class="number">10</span>);</span><br><span class="line">    connectionFactory.setChannelCacheSize(<span class="number">200</span>); </span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> connectionFactory;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>如果需要采用缓存Channel的模式，示例如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> CachingConnectionFactory <span class="title">buildConnFactory</span><span class="params">(String addresses, String username, String password, String vhost)</span> </span>&#123;    </span><br><span class="line">    CachingConnectionFactory connectionFactory = <span class="keyword">new</span> CachingConnectionFactory();    </span><br><span class="line">    connectionFactory.setAddresses(addresses);    </span><br><span class="line">    connectionFactory.setUsername(username);    </span><br><span class="line">    connectionFactory.setPassword(password);    </span><br><span class="line">    connectionFactory.setVirtualHost(vhost);    </span><br><span class="line">    connectionFactory.setCacheMode(CachingConnectionFactory.CacheMode.CHANNEL);    </span><br><span class="line">    connectionFactory.setChannelCacheSize(channelCacheSize);    </span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> connectionFactory;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在缓存connection模式下，不支持自动声明队列、exchange、binding等，rabbitmq-client默认只提供了5个线程处理connection，因此，当connection较多时，应该自定义线程池，并配置到<code>CachingConnectionFactory</code>中。自定义的线程池将会被所有connection共享，建议线程池的最大线程数设置的与预期connection数相等，因为可能存在对于大部分connection都有多个channel的情况。示例如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">ExecutorService executor = <span class="keyword">new</span> </span><br><span class="line">    ThreadPoolExecutor(corePoolSize,                            </span><br><span class="line">                       maxPoolSize, keepAliveSeconds,TimeUnit.SECONDS,        </span><br><span class="line">                       <span class="keyword">new</span> ArrayBlockingQueue&lt;&gt;(queueSize),   </span><br><span class="line">                       <span class="keyword">new</span> ThreadFactory() &#123;            </span><br><span class="line">                           <span class="meta">@Override</span>            </span><br><span class="line">                           <span class="function"><span class="keyword">public</span> Thread <span class="title">newThread</span><span class="params">(Runnable r)</span> </span></span><br><span class="line"><span class="function">                           </span>&#123;                </span><br><span class="line">                               Thread thread = <span class="keyword">new</span> Thread(r);                 </span><br><span class="line">                               thread.setName(<span class="string">"myThread"</span> + autoInt.getAndIncrement());   </span><br><span class="line">                               thread.setDaemon(<span class="keyword">false</span>);                </span><br><span class="line">                               <span class="keyword">return</span> thread;            </span><br><span class="line">                           &#125;        </span><br><span class="line">                       &#125;,        </span><br><span class="line">                       <span class="keyword">new</span> ThreadPoolExecutor.CallerRunsPolicy());</span><br><span class="line"></span><br><span class="line">connectionFactory.setExecutor(executor);</span><br></pre></td></tr></table></figure>
+
+<h1 id="channelCacheSize"><a href="#channelCacheSize" class="headerlink" title="channelCacheSize"></a>channelCacheSize</h1><p>前面了解到，Spring AMQP通过缓存channel或connection提高吞吐量。<code>connectionFactory</code>分为两种模式，一种是缓存channel，一种是缓存connection（同时也缓存该connection的channel）。本节主要介绍<code>channelCacheSize</code>。<code>ConnectionCacheSize</code>也是类似的，不赘述。</p>
+<h2 id="默认仅限制缓存的channelSize"><a href="#默认仅限制缓存的channelSize" class="headerlink" title="默认仅限制缓存的channelSize"></a>默认仅限制缓存的channelSize</h2><p>默认地，最大channelSize是没有限制的，限制的仅仅是缓存的channelSize（connection也一样），默认值是25，缓存channel的目的是减小高并发多线程环境中频繁创建销毁channel的开销，比如：在某一时刻有100个channel处于工作状态，当channel空闲后，只会缓存channelSize个channel，剩下的都会被销毁。</p>
+<p>通过RabbitMQ的Web管理插件观察到channel在频繁的被创建和销毁时，应及时的提高<code>channelCacheSize</code>。建议最少要保证线程数&lt;<code>channelCacheSize</code>。可以通过压力测试，观察高峰期channel动态平衡的数量，从而决定<code>channelCacheSize</code>的大小。</p>
+<h2 id="channelSize限制"><a href="#channelSize限制" class="headerlink" title="channelSize限制"></a>channelSize限制</h2><p>也可以通过<code>channelCheckoutTimeout</code>参数设置<code>connectionFactory</code>的<code>channelSize</code>限制，当该参数大于0时，表示最大的<code>channel数目</code>=<code>channelCacheSize</code>，达到<code>channelCacheSize</code>的上限后，调用<code>createChannel</code>的线程会阻塞，直至有空闲<code>channel</code>出现或阻塞时间超过<code>chanelCheckoutTimeout</code>，在超时的情况下，抛出<code>AmqpTimeoutException</code>，可以设置一些Retry的策略来处理这些异常。</p>
+<h1 id="连接命名"><a href="#连接命名" class="headerlink" title="连接命名"></a>连接命名</h1><p>通过<code>ConnectionNameStrategy</code>属性设置<code>connection</code>名称。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">connectionFactory.setConnectionNameStrategy(<span class="keyword">new</span> ConnectionNameStrategy() &#123;   </span><br><span class="line">    <span class="meta">@Override</span>    </span><br><span class="line">    <span class="function"><span class="keyword">public</span> String <span class="title">obtainNewConnectionName</span><span class="params">(ConnectionFactory connectionFactory)</span> </span>&#123;        </span><br><span class="line">        <span class="keyword">return</span> connectionFactory.getHost() + atomicInteger.getAndIncrement();    </span><br><span class="line">    &#125;</span><br><span class="line">&#125;);</span><br><span class="line"></span><br><span class="line"><span class="keyword">return</span> connectionFactory;</span><br></pre></td></tr></table></figure>
+
+<h1 id="使用RabbitMQ-Java-API提供的connectionFactory"><a href="#使用RabbitMQ-Java-API提供的connectionFactory" class="headerlink" title="使用RabbitMQ Java API提供的connectionFactory"></a>使用RabbitMQ Java API提供的connectionFactory</h1><p>Spring AMQP也支持使用RabbitMQ Java API提供的<code>connectionFactory</code>，即Rabbit Client的<code>connectionFactory</code>，位于包<code>com.rabbitmq.client.ConnectionFactory</code>中，通过构造器参数设置在<code>CachingConnectionFactory</code>中，示例如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ConnectionFactory factory = <span class="keyword">new</span> ConnectionFactory();</span><br><span class="line">CachingConnectionFactory connectionFactory = <span class="keyword">new</span> CachingConnectionFactory(factory);</span><br></pre></td></tr></table></figure>
+
+<h2 id="自定义RabbitClient的属性"><a href="#自定义RabbitClient的属性" class="headerlink" title="自定义RabbitClient的属性"></a>自定义RabbitClient的属性</h2><p>上述示例为RabbitClient的<code>connectionFactory</code> —–&gt; Spring AMQP的<code>connectionFactiory</code>的转换，Spring也提供了Spring AMQP的<code>connectionFactiory</code> —–&gt; RabbitClient的<code>connectionFactory</code>的转换。</p>
+<p>比如可以通过CachingConnectionFactory设置RabbitClient <code>connectionFactory</code>的属性。</p>
+<p>示例如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">connectionFactory.getRabbitConnectionFactory().getClientProperties().put(<span class="string">"foo"</span>, <span class="string">"bar"</span>);</span><br></pre></td></tr></table></figure>
+
+<h1 id="连接恢复"><a href="#连接恢复" class="headerlink" title="连接恢复"></a>连接恢复</h1><p>Rabbit Client4.0后的<code>connectionFactory</code>和Spring AMQP的·<code>connectionFactory</code>均默认提供了自动恢复连接的机制；虽然两者的自动恢复机制是兼容的，但使用构造注入<code>conncetionFactory</code>时建议关闭其中一个。</p>
+<p>否则，在MQ服务器节点可用但连接尚未恢复时，出现<code>AutoRecoverConnectionNotCurrentlyOpenException</code> 异常。比如：如果在<code>RabbitTemplate</code>中配置<code>RetryTemplate</code>（Spring AMQP的手动恢复），甚至在故障转移到集群中的另一个代理时，可能抛出上述异常。</p>
+<h2 id="关闭Rabbit-Client的自动恢复"><a href="#关闭Rabbit-Client的自动恢复" class="headerlink" title="关闭Rabbit Client的自动恢复"></a>关闭Rabbit Client的自动恢复</h2><p>由于Spring AMQP的自动恢复连接在计时器上恢复，因此可以使用SpringAMQP的恢复机制更快地恢复连接。</p>
+<p>springboot-amqp1.7版本以后，默认关闭RabbitClient的<code>connectionFactory</code>的自动重连，<strong>但是，在通过构造参数注入RabbitClient的<code>connectionFactory</code>时，是没有办法默认关闭的，需要手动设置</strong>。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">ConnectionFactory factory = <span class="keyword">new</span> ConnectionFactory();</span><br><span class="line">factory.setAutomaticRecoveryEnabled(<span class="keyword">false</span>); <span class="comment">// 显示关闭RabbitClient的自动重连</span></span><br><span class="line">CachingConnectionFactory connectionFactory = <span class="keyword">new</span> CachingConnectionFactory(factory);</span><br></pre></td></tr></table></figure>
+
+<p>一般地，关闭掉Rabbit Client的自动恢复，使用Spring AMQP可以满足绝大多数使用场景，而且框架提供的自动恢复机制已经很完善。</p>
+<h1 id="SSL连接"><a href="#SSL连接" class="headerlink" title="SSL连接"></a>SSL连接</h1><p>建议通过注入RabbitMQ client <code>connectionFactory</code>的方式配置SSL连接，示例如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">ConnectionFactory factory = <span class="keyword">new</span> ConnectionFactory();</span><br><span class="line"></span><br><span class="line">factory.setAutomaticRecoveryEnabled(<span class="keyword">false</span>);</span><br><span class="line"></span><br><span class="line">File keyFile = <span class="keyword">new</span> File(keyPath);</span><br><span class="line">File certFile = <span class="keyword">new</span> File(cerPath);</span><br><span class="line">SSLContexts sslCtx = SslContextBuilder.forServer(certFile, keyFile).build();</span><br><span class="line">factory.useSslProtocol(sslCtx);</span><br><span class="line"></span><br><span class="line">CachingConnectionFactory connectionFactory = <span class="keyword">new</span> CachingConnectionFactory(factory);</span><br></pre></td></tr></table></figure>
+
+<h1 id="避免Connection死锁"><a href="#避免Connection死锁" class="headerlink" title="避免Connection死锁"></a>避免Connection死锁</h1><p>在内存不足或MQ服务端出现异常时，可能会出现连接阻塞，对于默认的CachingConnectionFactory，MQ服务端导致连接阻塞时，客户端会主动地关闭。</p>
+<p>因此，如果生产者消费者共用同一个connectionFactory，MQ服务端导致生产者客户端与消费者客户端关闭，可能死锁的情况：生产者与消费者持有相同的连接资源时，MQ服务器异常触发生产者和消费者中断与服务端的连接，可能会出现死锁。</p>
+<p>为避免死锁的产生，<strong>建议对于生产者和消费者分别配置不同的connectionFactory</strong>。需要注意的是：如果生产者消费者处于同一个事物时，不建议生产者消费者配置相同的connectionFactory，因为消费者（或生产者）需要复用对方的channel。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Bean</span>(name = <span class="string">"myRabbitTemplate"</span>)</span><br><span class="line"><span class="function"><span class="keyword">public</span> RabbitTemplate <span class="title">basicCloudRabbitTemplate</span><span class="params">(CachingConnectionFactory f)</span> </span>&#123;    </span><br><span class="line">    RabbitTemplate rabbitTemplate = <span class="keyword">new</span> RabbitTemplate(f);   </span><br><span class="line">    rabbitTemplate.setUsePublisherConnection(<span class="keyword">true</span>);    </span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> rabbitTemplate;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h1 id="Routing-ConnectionFactory实现多数据源收发消息"><a href="#Routing-ConnectionFactory实现多数据源收发消息" class="headerlink" title="Routing ConnectionFactory实现多数据源收发消息"></a>Routing ConnectionFactory实现多数据源收发消息</h1><p>spring AMQP提供<code>SimpleRoutingConnectionFactory负责在运行时根据查找键动态选择connectionFactory，通常，以线程的上下文作为查找键，比如地址、vHost</code>等，<code>SimpleRoutingConnectionFactory</code>继承了<code>AbstractRoutingConnectionFactory</code>，通过SimpleResourceHolder获取当前线程的查找键。示例如下：</p>
+<p>首先，为RabbitTemplate配置一个以vHost作为查找键的<code>SimpleRoutingConnectionFactory</code>。key分别为<code>factory1</code>的<code>virtualHost</code>和<code>factory2</code>的<code>virtualHost</code>，当然，也可以使用addresses作为查找键。使用方式为<code>factoryMap.put(&quot;#{factory1.addresses}&quot;, factory1)</code></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> SimpleRoutingConnectionFactory <span class="title">myFactory</span><span class="params">()</span> </span>&#123;    </span><br><span class="line">    SimpleRoutingConnectionFactory routingFactory = <span class="keyword">new</span> SimpleRoutingConnectionFactory();    </span><br><span class="line">    CachingConnectionFactory factory1 = <span class="keyword">new</span> CachingConnectionFactory();    </span><br><span class="line">    factory1.setAddresses(<span class="string">"localhost:5672"</span>);    </span><br><span class="line">    factory1.setUsername(<span class="string">"username1"</span>);    </span><br><span class="line">    factory1.setPassword(<span class="string">"password1"</span>);    </span><br><span class="line">    factory1.setVirtualHost(<span class="string">"v1"</span>);    </span><br><span class="line">    </span><br><span class="line">    CachingConnectionFactory factory2 = <span class="keyword">new</span> CachingConnectionFactory();    </span><br><span class="line">    factory2.setAddresses(<span class="string">"202.130.1.1:5672"</span>);    </span><br><span class="line">    factory2.setUsername(<span class="string">"username2"</span>);    </span><br><span class="line">    factory2.setPassword(<span class="string">"password2"</span>);    </span><br><span class="line">    factory2.setVirtualHost(<span class="string">"v2"</span>);    </span><br><span class="line">    </span><br><span class="line">    Map&lt;Object, ConnectionFactory&gt; factoryMap = <span class="keyword">new</span> HashMap&lt;&gt;(<span class="number">5</span>);    </span><br><span class="line">  	factoryMap.put(<span class="string">"#&#123;factory1.virtualHost&#125;"</span>, factory1);    </span><br><span class="line">    factoryMap.put(<span class="string">"#&#123;factory2.virtualHost&#125;"</span>, factory2);    </span><br><span class="line">    </span><br><span class="line">    routingFactory.setTargetConnectionFactories(factoryMap);     </span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> routingFactory;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">@Bean</span>(<span class="string">"myRabbitTemplate"</span>)</span><br><span class="line"><span class="function"><span class="keyword">public</span> RabbitTemplate <span class="title">myRabbitTemplate</span><span class="params">()</span> </span>&#123;    </span><br><span class="line">    RabbitTemplate rabbitTemplate = <span class="keyword">new</span> RabbitTemplate();    </span><br><span class="line">    rabbitTemplate.setConnectionFactory(myFactory());        </span><br><span class="line">    <span class="keyword">return</span> rabbitTemplate;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>使用方法如下，SimpleResourceHolder的bind和unbind都是必须的，分别指获取当前线程查找键，释放查找键。bind有两个参数，第一个为待获取的connectFactory，第二个为key</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">MyService</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Autowired</span></span><br><span class="line">    <span class="meta">@Qualifier</span>(<span class="string">"myRabbitTemplate"</span>)</span><br><span class="line">    <span class="keyword">private</span> RabbitTemplate rabbitTemplate;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">service</span><span class="params">(String vHost, String payload)</span> </span>&#123;</span><br><span class="line">        SimpleResourceHolder.bind(rabbitTemplate.getConnectionFactory(), vHost);</span><br><span class="line">        rabbitTemplate.convertAndSend(payload);</span><br><span class="line">        SimpleResourceHolder.unbind(rabbitTemplate.getConnectionFactory());</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>消费者使用多数据源的方式略有不同</strong>，首先，配置两个不同的containerFactory</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Bean</span>(<span class="string">"myContainerFactory1"</span>)</span><br><span class="line"><span class="function"><span class="keyword">public</span> SimpleRabbitListenerContainerFactory <span class="title">containerFactory1</span><span class="params">()</span> </span>&#123;    </span><br><span class="line">    SimpleRabbitListenerContainerFactory containerFactory1 = <span class="keyword">new</span> SimpleRabbitListenerContainerFactory();        </span><br><span class="line">    </span><br><span class="line">    CachingConnectionFactory factory1 = <span class="keyword">new</span> CachingConnectionFactory();    </span><br><span class="line">    factory1.setAddresses(<span class="string">"localhost:5672"</span>);    </span><br><span class="line">    factory1.setUsername(<span class="string">"username1"</span>);    </span><br><span class="line">    factory1.setPassword(<span class="string">"password1"</span>);    </span><br><span class="line">    factory1.setVirtualHost(<span class="string">"v1"</span>);        </span><br><span class="line">    </span><br><span class="line">    containerFactory1.setConnectionFactory(factory1);        </span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> containerFactory1;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">@Bean</span>(<span class="string">"myContainerFactory2"</span>)</span><br><span class="line"><span class="function"><span class="keyword">public</span> SimpleRabbitListenerContainerFactory <span class="title">containerFactory2</span><span class="params">()</span> </span>&#123;    </span><br><span class="line">    SimpleRabbitListenerContainerFactory containerFactory2 = <span class="keyword">new</span> SimpleRabbitListenerContainerFactory();    </span><br><span class="line">   	</span><br><span class="line">    CachingConnectionFactory factory2 = <span class="keyword">new</span> CachingConnectionFactory();    </span><br><span class="line">    factory2.setAddresses(<span class="string">"host2:5672"</span>);    </span><br><span class="line">    factory2.setUsername(<span class="string">"username2"</span>);    </span><br><span class="line">    factory2.setPassword(<span class="string">"password2"</span>);    </span><br><span class="line">    factory2.setVirtualHost(<span class="string">"v2"</span>);    </span><br><span class="line">    </span><br><span class="line">    containerFactory2.setConnectionFactory(factory2);    </span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> containerFactory2;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>使用@RabbitListener接收消息时指定containerFactory</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@RabbitListener</span>(queues = <span class="string">"queue.test"</span>, containerFactory = <span class="string">"myContainerFactory1"</span>)</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">receiveMsg1</span><span class="params">(Message message, Channel channel)</span> </span>&#123;</span><br><span class="line"> 	String msg = <span class="keyword">new</span> String(message.getBody(), StandardCharsets.UTF_8);</span><br><span class="line"> 	logger.debug(<span class="string">"rcv msg &#123;&#125;"</span>, msg);</span><br><span class="line"> 	channel.basicAck(message.getMessageProperties().getDeliveryTag(), <span class="keyword">false</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">@RabbitListener</span>(queues = <span class="string">"queue.test"</span>, containerFactory = <span class="string">"myContainerFactory2"</span>)</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">receiveMsg2</span><span class="params">(Message message, Channel channel)</span> </span>&#123;</span><br><span class="line"> 	String msg = <span class="keyword">new</span> String(message.getBody(), StandardCharsets.UTF_8);</span><br><span class="line"> 	logger.debug(<span class="string">"rcv msg &#123;&#125;"</span>, msg);</span><br><span class="line"> 	channel.basicAck(message.getMessageProperties().getDeliveryTag(), <span class="keyword">false</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h1 id="集群中的连接管理"><a href="#集群中的连接管理" class="headerlink" title="集群中的连接管理"></a>集群中的连接管理</h1><p>MQ的集群根据集群中各节点队列信息区分为镜像队列和普通队列。只有队列所在节点知道该队列的所有信息，默认情况下，MQ是普通队列，队列只存活于集群中的一个节点上，称为主队列。镜像队列与普通队列的相同点是：队列的主拷贝仅存在于一个节点上（主队列，master节点）。不同点是，镜像节点在集群中的其他节点上拥有从队列的拷贝。一旦队列主节点不可用，最老的从队列自动被选举为新的主队列。</p>
+<p>镜像队列的原理：在非镜像队列的集群中，信道负责将消息路由至合适的队列。当加入镜像队列后，信道除了负责将消息路按照路由绑定规则路由至合适的队列外，它也要将消息投递到镜像队列的从拷贝，在某种程度上，可以将镜像队列视为拥有一个隐藏的fanout交换器，它指示着信道将消息分发到队列的从拷贝上。</p>
+<p>无论对于普通队列还是镜像队列，所要面临的问题是：主节点崩溃时，消费者该与哪个节点建立连接。</p>
+<h2 id="普通队列"><a href="#普通队列" class="headerlink" title="普通队列"></a>普通队列</h2><p>对于普通队列，使用<code>CachingConnectionFactory</code>就足够了，它支持配置多个连接地址，当一个连接失败时，会按顺序尝试与其他地址建立连接。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">CachingConnectionFactory factory = <span class="keyword">new</span> CachingConnectionFactory();</span><br><span class="line">factory.setAddresses(<span class="string">"host1:5672, host2:5672"</span>);</span><br></pre></td></tr></table></figure>
+
+<h2 id="高可用队列（镜像队列）"><a href="#高可用队列（镜像队列）" class="headerlink" title="高可用队列（镜像队列）"></a>高可用队列（镜像队列）</h2><ul>
+<li>消费者</li>
 </ul>
-<p><img src="https://raw.githubusercontent.com/okspy/image/master/mongodb/NoSQL.png" alt="img"></p>
-<h1 id="文档与集合"><a href="#文档与集合" class="headerlink" title="文档与集合"></a>文档与集合</h1><p>文档是MongoDB中数据的基本单元，类似于关系型数据库管理系统中的行，但灵活性更高。例如：</p>
-<p><code>{&quot;name&quot;:&quot;xiaoming&quot;,&quot;age&quot;:20}</code></p>
-<p>集合是一组文档，可以看做是一个拥有动态模式的表。因此，MongoDB中的文档没有预定义模，一个集合中可以保存多个完全不同的文档，例如：</p>
-<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">1</span>  &#123;<span class="string">"name"</span>:<span class="string">"xiaoming"</span>, <span class="string">"age"</span>:<span class="number">20</span>&#125;</span><br><span class="line"><span class="number">2</span>  &#123;<span class="string">"name"</span>:<span class="string">"xiaohei"</span>, <span class="string">"age"</span>:<span class="number">20</span>, <span class="string">"man"</span>:<span class="literal">true</span>, <span class="string">"address"</span>:<span class="string">"sz"</span>&#125; </span><br><span class="line"><span class="number">3</span>  &#123;<span class="string">"device"</span>:<span class="string">"rcu"</span>,<span class="string">"devId"</span>:<span class="string">"1234567890"</span>&#125;</span><br></pre></td></tr></table></figure>
+<p><code>LocalizedQueueConnectionFactory</code>是Spring AMQP为<strong>消费者</strong>提供的用于高可用集群的连接工厂，使用它时，MQ服务端必须设置enable management plugin。</p>
+<p>它通过MQ服务器management 插件提供的REST API 获取哪个节点是主节点，创建<code>CachingConnectionFactory</code>连接至该节点，如果连接失败，将再次调用MQ服务器management 插件提供的REST API 获取新选举的主节点。当无法获取新选举的主节点是，将通过<code>CachingConnectionFactory</code>像普通队列一样按顺序连接至MQ服务器。</p>
+<p><code>LocalizedQueueConnectionFactory</code><strong>本质上是一个RoutingConnectionFactory，它的查找键是队列名。</strong></p>
+<p>正是由于查找键是对列名，必需保证查找键的唯一性，消费者的<code>ContainerFactory</code>只能配置在一个队列上。</p>
+<p>注意：</p>
+<p>由于每次创建连接时，都要通过REST API获取连接节点，开销很大，只适用于长连接的场景（消费者），不适用短连接的场景（生产者）。</p>
+<p><code>LocalizedQueueConnectionFactory</code>只适用于消费者，比如配置在<code>SimpleMessageListenerContainer</code>中，不适用于生产者（比如将<code>LocalizedQueueConnectionFactory</code>配置在<code>RabbitTemplate</code>中）。</p>
+<p>示例如下：<code>LocalizedQueueConnectionFactory</code>构造方法的前三个参数 <code>addresses</code>, <code>adminUris</code> 和<code>nodes</code>都是字符串数组，<code>LocalizedQueueConnectionFactory</code>使用数组下标相同的参数构建连接。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Autowired</span></span><br><span class="line"><span class="keyword">private</span> RabbitProperties props;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">final</span> String[] adminUris = &#123; <span class="string">"http://host1:15672"</span>, <span class="string">"http://host2:15672"</span> &#125;;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">final</span> String[] nodes = &#123; <span class="string">"rabbit@host1"</span>, <span class="string">"rabbit@host2"</span> &#125;;</span><br><span class="line"></span><br><span class="line"><span class="meta">@Bean</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> ConnectionFactory <span class="title">defaultConnectionFactory</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    CachingConnectionFactory cf = <span class="keyword">new</span> CachingConnectionFactory();</span><br><span class="line">    cf.setAddresses(<span class="keyword">this</span>.props.getAddresses());</span><br><span class="line">    cf.setUsername(<span class="keyword">this</span>.props.getUsername());</span><br><span class="line">    cf.setPassword(<span class="keyword">this</span>.props.getPassword());</span><br><span class="line">    cf.setVirtualHost(<span class="keyword">this</span>.props.getVirtualHost());</span><br><span class="line">    <span class="keyword">return</span> cf;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">@Bean</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> ConnectionFactory <span class="title">queueAffinityCF</span><span class="params">(</span></span></span><br><span class="line"><span class="function"><span class="params">        @Qualifier(<span class="string">"defaultConnectionFactory"</span>)</span> ConnectionFactory defaultCF) </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> LocalizedQueueConnectionFactory(defaultCF,</span><br><span class="line">            StringUtils.commaDelimitedListToStringArray(<span class="keyword">this</span>.props.getAddresses()),</span><br><span class="line">            <span class="keyword">this</span>.adminUris, <span class="keyword">this</span>.nodes,</span><br><span class="line">            <span class="keyword">this</span>.props.getVirtualHost(), <span class="keyword">this</span>.props.getUsername(), <span class="keyword">this</span>.props.getPassword(),</span><br><span class="line">            <span class="keyword">false</span>, <span class="keyword">null</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<p>备注：集合命名时，不能有空字符串、不能包含\0、不能包含$、不能以system.开头</p>
-<h1 id="数据库"><a href="#数据库" class="headerlink" title="数据库"></a>数据库</h1><p>多个集合组成一个数据库、一个MongoDB实例包含多个数据库，每个数据库拥有独立的权限，在磁盘上，不同的数据库放置在不同的文件夹中，一般的，一个应用程序使用一个数据库。</p>
-<p>有三个数据库是默认保留的：admin（root库）、local（用于副本集模式）、config（用于分片模式）</p>
-<h1 id="数据类型"><a href="#数据类型" class="headerlink" title="数据类型"></a>数据类型</h1><p>MongoDB的文档与JavaScript中对象相近，类似于JSON，MongoDB支持JSON包含的6种数据类型：null、布尔型、数值、字符串、数组、对象，MongoDB还添加了其他一些数据类型：日期、正则表达式、数组、内嵌文档、对象id、二进制数据、JavaScript代码。</p>
-<p>下面只介绍：日期、数组、内嵌文档、对象id。</p>
-<h2 id="日期"><a href="#日期" class="headerlink" title="日期"></a>日期</h2><p>对应JAVA、JS中的Date类，存入数据库的是Date对象，不是日期字符串。数据库中存储的日期为新纪元以来的毫秒数，并未存储时区，Date对象与毫秒之间的转换，由MongoDB负责，客户端不需要关心。</p>
-<h2 id="数组"><a href="#数组" class="headerlink" title="数组"></a>数组</h2><p>与JAVA数组不同的是，数组可以包含不同类型的元素，数组可以嵌套数组。</p>
-<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&#123;<span class="string">"things"</span>:[<span class="string">"apple"</span>, <span class="number">3.1415926</span>]&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="内嵌文档"><a href="#内嵌文档" class="headerlink" title="内嵌文档"></a>内嵌文档</h2><p>文档可以作为键的值，这样的文档就是内嵌文档。类似于JSON嵌套。</p>
-<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    <span class="string">"things"</span>:&#123;</span><br><span class="line">    	<span class="string">"name"</span>:<span class="string">"apple"</span></span><br><span class="line">        <span class="string">"price"</span>:<span class="number">3.14</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="objectId"><a href="#objectId" class="headerlink" title="objectId"></a>objectId</h2><p>MongoDB存储的文档必需有一个”_id“键，这个键可以是任意类型，默认是个ObjectId对象。objectId作为文档的唯一标识符。如果插入文档时，没有设置objectId，MongoDB客户端驱动会自动创建一个。</p>
-<p>object_id大小为12字节，是一个由24个十六进制数字组成的字符串。</p>
-<p><img src="https://raw.githubusercontent.com/okspy/image/master/mongodb/OBJECT_ID.png" alt="1566887583799"></p>
 <ul>
-<li><p>时间戳：占用前4个字节，从标准纪元开始的时间戳，单位为秒，</p>
-</li>
-<li><p>机器标识位：占用3个字节，是所在主机名的唯一标识，通常是机器名的hash值。</p>
-</li>
-<li><p>PID：产生 objectId的进程的ID</p>
-</li>
-<li><p>计数器： 前9个字节保证了同一秒钟不同机器不同进程的ObjectId是唯一的，最后三个字节用来确保同一秒同机器同进程的objectId的唯一性。所以每个进程同一秒最多允许产生<br>$$<br>（2^8)^3=16777216<br>$$<br>个不同的objectId。对于服务器来说，1600W个足够用了。</p>
-</li>
+<li>生产者</li>
 </ul>
-<p>从objectId的设计可以看出，MongoDB的设计初衷就是用作分布式数据库，能够在副本集、分片环境下生成全局唯一id。</p>
+<p>生产者本身也不需要考虑哪个节点是主节点，对于生产者来说，队列是未知的，消息会发送至集群中所有的节点。节点会判断该消息对应的主队列是否在自己的节点上。</p>
+<h1 id="连接和信道监听"><a href="#连接和信道监听" class="headerlink" title="连接和信道监听"></a>连接和信道监听</h1><p>Spring AMQP提供了connection和channel的监听器接口，通过回调实现自定义的创建和销毁监听逻辑。</p>
+<h2 id="ConnectionListener"><a href="#ConnectionListener" class="headerlink" title="ConnectionListener"></a>ConnectionListener</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">CachingConnectionFactory factory = <span class="keyword">new</span> CachingConnectionFactory();</span><br><span class="line">      List&lt;ConnectionListener&gt; connectionListeners = <span class="keyword">new</span> ArrayList&lt;&gt;();</span><br><span class="line">      </span><br><span class="line">ConnectionListener connectionListener = <span class="keyword">new</span> ConnectionListener() &#123;</span><br><span class="line">          <span class="meta">@Override</span></span><br><span class="line">          <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">onClose</span><span class="params">(Connection connection)</span> </span>&#123;</span><br><span class="line">              <span class="comment">// do something</span></span><br><span class="line">          &#125;</span><br><span class="line"></span><br><span class="line">          <span class="meta">@Override</span></span><br><span class="line">          <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">onShutDown</span><span class="params">(ShutdownSignalException signal)</span> </span>&#123;</span><br><span class="line">              <span class="comment">// do something</span></span><br><span class="line">          &#125;</span><br><span class="line"></span><br><span class="line">          <span class="meta">@Override</span></span><br><span class="line">          <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">onCreate</span><span class="params">(Connection connection)</span> </span>&#123;</span><br><span class="line">              <span class="comment">// do something</span></span><br><span class="line">          &#125;</span><br><span class="line">      &#125;;</span><br><span class="line">      connectionListeners.add(connectionListener);</span><br><span class="line"></span><br><span class="line">      factory.setConnectionListeners(connectionListeners);</span><br></pre></td></tr></table></figure>
+
+<h2 id="ChannelListener"><a href="#ChannelListener" class="headerlink" title="ChannelListener"></a>ChannelListener</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">CachingConnectionFactory factory = <span class="keyword">new</span> CachingConnectionFactory();</span><br><span class="line">List&lt;ChannelListener&gt; channelListeners = <span class="keyword">new</span> ArrayList&lt;&gt;();</span><br><span class="line">ChannelListener channelListener = <span class="keyword">new</span> ChannelListener() &#123;    </span><br><span class="line">    <span class="meta">@Override</span>    </span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">onCreate</span><span class="params">(Channel channel, <span class="keyword">boolean</span> b)</span> </span>&#123;        </span><br><span class="line">        <span class="comment">// do something    </span></span><br><span class="line">    &#125;    </span><br><span class="line">    </span><br><span class="line">    <span class="meta">@Override</span>    </span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">onShutDown</span><span class="params">(ShutdownSignalException signal)</span> </span>&#123;        </span><br><span class="line">        <span class="comment">// do something    </span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">channelListeners.add(channelListener);</span><br><span class="line">List&lt;ConnectionListener&gt; connectionListeners = <span class="keyword">new</span> ArrayList&lt;&gt;();</span><br><span class="line"></span><br><span class="line">factory.setChannelListeners(channelListeners);</span><br></pre></td></tr></table></figure>
+
+<h1 id="channel关闭的日志级别控制"><a href="#channel关闭的日志级别控制" class="headerlink" title="channel关闭的日志级别控制"></a>channel关闭的日志级别控制</h1><p>当channel关闭时，<code>CachingConnectionFactory</code>的默认日志规则如下：</p>
+<ul>
+<li>正常的channel销毁，无log</li>
+<li>队列声明失败导致的channel关闭，debug级别</li>
+<li>在exclusive（独占）队列上，basic.consume因为独占使用条件而关闭channel，info级别</li>
+<li>其他的channel关闭情况输出error级别log</li>
+</ul>
+<p>自定义log级别：为CachingConnectionFactory配置自定义的ConditionalExceptionLogger。</p>
 
           
         
@@ -448,7 +717,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">11</span>
+                  <span class="site-state-item-count">12</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -458,13 +727,22 @@
               
               
               <div class="site-state-item site-state-categories">
-                
-                  <span class="site-state-item-count">4</span>
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">5</span>
                   <span class="site-state-item-name">分类</span>
-                
+                </a>
               </div>
             
 
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">2</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
             
 
           </nav>
@@ -678,6 +956,7 @@
   
 
   
+
 
 </body>
 </html>
